@@ -3,10 +3,17 @@
 
 # <codecell>
 
+from matplotlib import rc
+rc('text', usetex=False)
+rc('font', family='serif')
+
+# <codecell>
+
 from scipy.io import loadmat
 from igraph import Graph, summary
 import networkx as nx
 from scipy.signal import correlate
+from scipy.stats import kendalltau
 
 # <codecell>
 
@@ -145,11 +152,12 @@ def rich_club_coefficient(graph, fraction=None, highest=True, scores_name=None, 
 
 # <codecell>
 
-cd /data/alstottjd/Sini
+data_dir = "/data/alstottjd/Sini/"
 
 # <codecell>
 
-mat = loadmat('test_NL_mlast_nruns70_pinc0.001_addinc0_mnwt7_mxwt5_cf99_R1000000_netprms:_60_oho_-6_1_5_ncorr.mat')
+#mat = loadmat('test_NL_mlast_nruns70_pinc0.001_addinc0_mnwt7_mxwt5_cf99_R1000000_netprms:_60_ws_-0.0333333-4_1_5_ncorr.mat')
+mat = loadmat(data_dir+'test_NL_mlast_nruns70_pinc0.001_addinc0_mnwt7_mxwt5_cf99_R1000000_netprms:_60_oho_-6_1_5_ncorr.mat')
 
 # <codecell>
 
@@ -168,6 +176,10 @@ n_walktrap = zeros([n_nets, n_runs])
 q_infomap = zeros([n_nets, n_runs])
 n_infomap = zeros([n_nets, n_runs])
 codelength = zeros([n_nets, n_runs])
+mean_path_length = zeros([n_nets, n_runs])
+mean_clustering = zeros([n_nets, n_runs])
+betweeness_change = zeros([n_nets, n_runs])
+
 rc_out = zeros([n_nets, n_runs, 9])
 rc_in = zeros([n_nets, n_runs, 9])
 rc_out_int = zeros([n_nets, n_runs])
@@ -178,8 +190,9 @@ alpha = .9
 width = .4
 
 for i in range(n_nets):
+    last_betweeness = 0
     for j in arange(0,n_runs):#,10):
-        if floor(j%50)=0:
+        if floor(j%50)==0:
             print j
 
         g = Graph.Weighted_Adjacency(mat['pnets'][0,i][0,j].toarray().tolist())
@@ -197,6 +210,15 @@ for i in range(n_nets):
         n_infomap[i,j] = infomap.cluster_graph().vcount()
         q_infomap[i,j] = infomap.q
         codelength[i, j] = infomap.codelength
+
+        mean_path_length[i,j] = mean(g.shortest_paths(weights='weight'))
+        mean_clustering[i,j] = mean(g.transitivity_local_undirected(weights='weight'))
+        
+        betweeness_sequence = g.edge_betweenness(weights='weight')
+        if last_betweeness==0:
+            last_betweeness = betweeness_sequence
+        else:
+            betweeness_change[i,j] = kendalltau(last_betweeness, betweeness_sequence)[0]
         
         rc_out[i,j,:] = rich_club_coefficient(g, scores_name='out_strength', control = mat['pnets_spr_out'][i,j,:])
         rc_in[i,j,:] = rich_club_coefficient(g, scores_name='in_strength', control = mat['pnets_spr_in'][i,j,:])
@@ -226,6 +248,9 @@ for i in range(n_nets):
 
 increment = 1.0/10.0
 x_vals = arange(.1, 1, .1)
+w= 3.375
+h = w/1.6180
+#f = figure(figsize=(w,h))
 f = figure()
 
 ax1 = f.add_subplot(131)
@@ -234,7 +259,7 @@ handles['In Strength'] = ax1.plot(x_vals, rc_in[0,0, :], label='In Strength Rich
 handles['In Strength'] = ax1.plot(x_vals, rc_out[0,0,:], label='Out Strength Rich Club', color='g')
 plt.setp(ax1.get_xticklabels(), visible=False)
 ylabel("Rich Club Coefficient")
-text(.5, .9, '0 Cascades', transform = ax1.transAxes, horizontalalignment='center')
+text(.5, .9, '0 Cascades', transform = ax1.transAxes, horizontalalignment='center', fontsize=10)
 #xlabel('Strength Decile')
 plt.xticks(x_vals[::2], x_vals[::2])
 #handles, labels = ax1.get_legend_handles_labels()
@@ -247,7 +272,7 @@ handles['In Strength'] = ax2.plot(x_vals, rc_out[0,180,:], label='Out Strength R
 plt.setp(ax2.get_yticklabels(), visible=False)
 xlabel('Strength Decile')
 plt.xticks(x_vals[::2], (x_vals[::2]*100).astype(int))
-text(.5, .9, '36x10$^{5}$ Cascades', transform = ax2.transAxes, horizontalalignment='center')
+text(.5, .9, '36x10$^{5}$ Cascades', transform = ax2.transAxes, horizontalalignment='center', fontsize=10)
 #handles, labels = ax.get_legend_handles_labels()
 #ax.legend(handles, labels, loc=1)
 
@@ -257,15 +282,16 @@ handles['In Strength'] = ax3.plot(x_vals, rc_in[0,480,:], label='In Strength', c
 handles['In Strength'] = ax3.plot(x_vals, rc_out[0,480,:], label='Out Strength', color='g')
 plt.setp(ax3.get_yticklabels(), visible=False)
 plt.setp(ax3.get_xticklabels(), visible=False)
-text(.5, .9, '96x10$^{5}$ Cascades', transform = ax3.transAxes, horizontalalignment='center')
+text(.5, .9, '96x10$^{5}$ Cascades', transform = ax3.transAxes, horizontalalignment='center', fontsize=10)
 #xlabel('Strength Decile')
 plt.xticks(x_vals[::2], x_vals[::2])
 
 handles, labels = ax3.get_legend_handles_labels()
-ax3.legend(handles, labels, loc=5)
+ax3.legend(handles, labels, loc=5, fontsize=8)
 
-suptitle('Rich Club Growth and Death')
-savefig('RichClubSamples.pdf')
+
+savefig(data_dir+'RichClubSamples.pdf', bbox_inches='tight')
+#suptitle('Rich Club Growth and Death')
 
 # <codecell>
 
@@ -275,6 +301,8 @@ x_vals = arange(0, 10+increment, increment)
 
 # <codecell>
 
+from matplotlib.ticker import MultipleLocator, FormatStrFormatter
+
 #Modularity Metrics
 #plot(n_betweeness)
 figure()
@@ -283,7 +311,7 @@ y_vals = mean(n_infomap, axis=0)
 error = std(n_infomap, axis=0)
 plot(x_vals, y_vals)
 fill_between(x_vals, y_vals-error, y_vals+error, alpha=.5)
-title("Modularity with Learning")
+
 xlabel("Cascades (n x 10$^{6}$)")
 ylabel("Number of Modules")
 inset_ax = axes([0.58,0.58,0.3,0.3])
@@ -291,11 +319,14 @@ y_vals = mean(q_infomap, axis=0)
 error = std(q_infomap, axis=0)
 inset_ax.plot(x_vals, y_vals)
 inset_ax.fill_between(x_vals, y_vals-error, y_vals+error, alpha=.5)
-ylabel("Modularity Index")
+ylabel("Modularity Index", fontsize=10)
+inset_ax.yaxis.set_major_locator(MultipleLocator(.1))
+
 
 savetxt('modules.txt', mean(n_infomap, axis=0))
 savetxt('modularity.txt', mean(q_infomap, axis=0))
-savefig('Modularity.pdf')
+savefig(data_dir+'Modularity.pdf', bbox_inches='tight')
+#title("Modularity with Learning")
 
 # <codecell>
 
@@ -304,12 +335,13 @@ y_vals = mean(codelength, axis=0)
 error = std(codelength, axis=0)
 plot(x_vals, y_vals)
 fill_between(x_vals, y_vals-error, y_vals+error, alpha=.5)
-title("Network Compression with Learning")
+
 xlabel("Cascades (n x 10$^{6}$)")
 ylabel("Bits to Represent Network")
 
 savetxt('compression.txt', mean(codelength, axis=0))
-savefig('Compression.pdf')
+savefig(data_dir+'Compression.pdf', bbox_inches='tight')
+#title("Network Compression with Learning")
 
 # <codecell>
 
@@ -318,15 +350,15 @@ ax = f.add_subplot(111)
 handles = {}
 y_vals = mean(rc_in_int, axis=0)
 error = std(rc_in_int, axis=0)
-handles['In Strength'] = ax.plot(x_vals, y_vals, label='In Strength Rich Club', color='b')
+handles['In Strength'] = ax.plot(x_vals, y_vals, label='In Strength', color='b')
 fill_between(x_vals, y_vals-error, y_vals+error, color='b', alpha=.5)
 
 y_vals = mean(rc_out_int, axis=0)
 error = std(rc_out_int, axis=0)
-handles['Out Strength'] = ax.plot(x_vals, y_vals, label='Out Strength Rich Club', color='g')
+handles['Out Strength'] = ax.plot(x_vals, y_vals, label='Out Strength', color='g')
 fill_between(x_vals, y_vals-error, y_vals+error, color='g', alpha=.5)
 
-title("Rich Club with Learning")
+
 xlabel("Cascades (n x 10$^{6}$)")
 ylabel("Integrated Rich Club Index")
 
@@ -335,7 +367,50 @@ ax.legend(handles, labels, loc=1)
 
 savetxt('inrichclubint.txt', rc_in_int)
 savetxt('outrichclubint.txt', rc_out_int)
-savefig('RichClubInt.pdf')
+savefig(data_dir+'RichClubInt.pdf', bbox_inches='tight')
+#title("Rich Club with Learning")
+
+# <codecell>
+
+f = figure()
+ax = f.add_subplot(111)
+handles = {}
+y_vals = mean(mean_path_length, axis=0)
+error = std(mean_path_length, axis=0)
+handles['In Strength'] = ax.plot(x_vals, y_vals, label='Path Length', color='b')
+fill_between(x_vals, y_vals-error, y_vals+error, color='b', alpha=.5)
+
+y_vals = mean(mean_clustering, axis=0)
+error = std(mean_clustering, axis=0)
+handles['Out Strength'] = ax.plot(x_vals, y_vals, label='Clustering', color='g')
+fill_between(x_vals, y_vals-error, y_vals+error, color='g', alpha=.5)
+
+
+xlabel("Cascades (n x 10$^{6}$)")
+#ylabel("Integrated Rich Club Index")
+
+handles, labels = ax.get_legend_handles_labels()
+ax.legend(handles, labels, loc=1)
+
+#savetxt('inrichclubint.txt', rc_in_int)
+#savetxt('outrichclubint.txt', rc_out_int)
+#savefig(data_dir+'RichClubInt.pdf', bbox_inches='tight')
+#title("Rich Club with Learning")
+
+# <codecell>
+
+figure()
+y_vals = mean(betweeness_change, axis=0)
+error = std(betweeness_change, axis=0)
+plot(x_vals, y_vals)
+fill_between(x_vals, y_vals-error, y_vals+error, alpha=.5)
+
+xlabel("Cascades (n x 10$^{6}$)")
+ylabel("betweeness_change")
+
+#savetxt('compression.txt', mean(codelength, axis=0))
+#savefig(data_dir+'Compression.pdf', bbox_inches='tight')
+#title("Network Compression with Learning")
 
 # <codecell>
 
@@ -361,10 +436,10 @@ fill_between(x_vals, y_vals-error, y_vals+error, alpha=.5)
 
 max_corr_out_in = x_vals[argmax(mean(corr_out_in, axis=0))]
 ax.plot((max_corr_out_in, max_corr_out_in), ylim(), 'b--')
-title("In Strength Rich Club and Out Strength Rich Club Cross Correlation")
+
 xlabel("Cascades (n x 10$^{6}$)")
 ylabel("Cross-Correlation")
-handles = {}
+title("In Strength Rich Club and Out Strength Rich Club Cross Correlation")
 
 # <codecell>
 
