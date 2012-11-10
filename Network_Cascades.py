@@ -13,7 +13,7 @@ from scipy.io import loadmat
 from igraph import Graph, summary
 import networkx as nx
 from scipy.signal import correlate
-from scipy.stats import kendalltau
+from scipy.stats import kendalltau, spearmanr, rankdata
 
 # <codecell>
 
@@ -152,52 +152,90 @@ def rich_club_coefficient(graph, fraction=None, highest=True, scores_name=None, 
 
 # <codecell>
 
-data_dir = "/data/alstottjd/Sini/"
+i = [1,2,3]
+q = [3,2,1]
+sum(asarray([i,q]), axis=0)
 
 # <codecell>
 
-#mat = loadmat('test_NL_mlast_nruns70_pinc0.001_addinc0_mnwt7_mxwt5_cf99_R1000000_netprms:_60_ws_-0.0333333-4_1_5_ncorr.mat')
-mat = loadmat(data_dir+'test_NL_mlast_nruns70_pinc0.001_addinc0_mnwt7_mxwt5_cf99_R1000000_netprms:_60_oho_-6_1_5_ncorr.mat')
-
-# <codecell>
-
-#q = mat['pnets'][0,0][0,0]
-g = Graph.Weighted_Adjacency(mat['pnets'][0,0][0,0].toarray().tolist())
-
-# <codecell>
-
-n_nets = shape(mat['pnets'])[1]
-n_runs = shape(mat['pnets'][0,0])[1]
-
-q_betweeness = zeros([n_nets, n_runs])
-n_betweeness = zeros([n_nets, n_runs])
-q_walktrap = zeros([n_nets, n_runs])
-n_walktrap = zeros([n_nets, n_runs])
-q_infomap = zeros([n_nets, n_runs])
-n_infomap = zeros([n_nets, n_runs])
-codelength = zeros([n_nets, n_runs])
-mean_path_length = zeros([n_nets, n_runs])
-mean_clustering = zeros([n_nets, n_runs])
-betweeness_change = zeros([n_nets, n_runs])
-
-rc_out = zeros([n_nets, n_runs, 9])
-rc_in = zeros([n_nets, n_runs, 9])
-rc_out_int = zeros([n_nets, n_runs])
-rc_in_int = zeros([n_nets, n_runs])
-close('all')
-node_size = 100
-alpha = .9
-width = .4
-
-for i in range(n_nets):
-    last_betweeness = 0
-    for j in arange(0,n_runs):#,10):
-        if floor(j%50)==0:
-            print j
-
-        g = Graph.Weighted_Adjacency(mat['pnets'][0,i][0,j].toarray().tolist())
+class Timelines:
+    def __init__(self, with_control=True):
+        self.tls = []
+        self.control=with_control
         
+        if self.control:
+            self.controls = []
+
+    def add_timeline(self, tl, control_tls=None):
+        self.tls.append(tl)
+        if self.control:
+            self.controls.append(control_tls)
+
+    def add_timelines(self, tl, control_tls=None):
+        for i in tl:
+            self.add_timeline(i)
+        if self.control:
+            for i in control_tls:
+                self.controls.append(i)
+    
+    
+    def __getattr__(self, name, version=None):
         
+        if version==None:
+            if self.control:
+                version='normalized'
+            else:
+                version='raw'    
+        
+        if version in ['normalized', 'raw']:
+            raw = []
+            for i in self.tls:
+                raw.append(getattr(i, name))
+        if version in ['normalized', 'control']:
+            control = []
+            for i in self.controls:
+                control.append(getattr(i, name)[0])
+                
+        if version=='raw':
+            m = mean(asarray(raw), axis=0)
+            s = std(asarray(raw), axis=0)
+        elif version == 'control':
+            m = mean(asarray(control), axis=0)
+            s = std(asarray(control), axis=0)
+        elif version == 'normalized':
+            data = asarray(raw)/asarray(control)
+            m = mean(data, axis=0)
+            s = std(data, axis=0)
+        
+        return m, s
+
+        
+class Timeline:
+    def __init__(self):
+        self.q_betweeness = []
+        self.n_betweeness = []
+        self.q_walktrap = []
+        self.n_walktrap = []
+        self.q_infomap = []
+        self.n_infomap = []
+        self.codelength = []
+        
+        self.mean_path_length = []
+        self.mean_clustering = []
+        
+        self.betweeness_change_kendall = []
+        self.betweeness_change_spearmanr = []
+        
+        self.rc_out = [] #zeros([n_nets, n_runs, 9])
+        self.rc_in = [] #zeros([n_nets, n_runs, 9])
+        self.rc_out_int = []
+        self.rc_in_int = []
+        
+        self.last_betweeness = None
+        
+    def add_gen(self, g):
+        if type(g)==list:
+            g = Graph.Weighted_Adjacency(g)
         #b = g.community_edge_betweenness(directed=True, weights=g.es["weight"])
         #n_betweeness.append(b.optimal_count)
         #q_betweeness.append(b.as_clustering().q)
@@ -207,42 +245,165 @@ for i in range(n_nets):
         #q_walktrap.append(w.as_clustering().q)
         
         infomap = g.community_infomap(edge_weights=g.es["weight"])
-        n_infomap[i,j] = infomap.cluster_graph().vcount()
-        q_infomap[i,j] = infomap.q
-        codelength[i, j] = infomap.codelength
+        self.n_infomap.append(infomap.cluster_graph().vcount())
+        self.q_infomap.append(infomap.q)
+        self.codelength.append(infomap.codelength)
 
-        mean_path_length[i,j] = mean(g.shortest_paths(weights='weight'))
-        mean_clustering[i,j] = mean(g.transitivity_local_undirected(weights='weight'))
+        self.mean_path_length.append(mean(g.shortest_paths(weights='weight')))
+        self.mean_clustering.append(mean(g.transitivity_local_undirected(weights='weight')))
         
         betweeness_sequence = g.edge_betweenness(weights='weight')
-        if last_betweeness==0:
-            last_betweeness = betweeness_sequence
+        
+        if self.last_betweeness==None:
+            self.last_betweeness = betweeness_sequence
         else:
-            betweeness_change[i,j] = kendalltau(last_betweeness, betweeness_sequence)[0]
-        
-        rc_out[i,j,:] = rich_club_coefficient(g, scores_name='out_strength', control = mat['pnets_spr_out'][i,j,:])
-        rc_in[i,j,:] = rich_club_coefficient(g, scores_name='in_strength', control = mat['pnets_spr_in'][i,j,:])
-        rc_out_int[i,j] = sum(rc_out[i,j,:]-1)
-        rc_in_int[i,j] = sum(rc_in[i,j,:]-1)
-        
-        
             
-        if j in [0, 180, 480]:
-            savetxt('inrichclub_frame%i.txt'%j, rc_in[i,j,:])
-            savetxt('outrichclub_frame%i.txt'%j, rc_out[i,j,:])
+            #print shape(self.last_betweeness)
+            #print shape(betweeness_sequence)
             
-            figure()
-            plot(rc_in[i,j,:], 'b')
-            plot(rc_out[i,j,:], 'g')
-            #show()
-            savefig('richclub_frame%i.pdf'%j)
+            #kendalltau(self.last_betweeness, betweeness_sequence)
             
-        #net = nx.DiGraph(mat['pnets'][0,i][0,j])
-        #pos=nx.spring_layout(net)
-        #figure()
-        #title(str(i)+', '+str(z.as_clustering().q))
-        #nx.draw(net,pos,node_size=node_size,alpha=alpha, width=width, with_labels=False)
-        #show()
+
+            self.betweeness_change_kendall.append(kendalltau(self.last_betweeness, betweeness_sequence)[0])
+            self.betweeness_change_spearmanr.append(spearmanr(self.last_betweeness, betweeness_sequence)[0])
+            
+        self.rc_out.append(rich_club_coefficient(g, scores_name='out_strength', rewire=False))
+        self.rc_in.append(rich_club_coefficient(g, scores_name='in_strength', rewire=False))
+        self.rc_out_int.append(sum(rc_out[-1]-1))
+        self.rc_in_int.append(sum(rc_in[-1]-1))
+
+# <codecell>
+
+data_dir = "/data/alstottjd/Sini/"
+
+# <codecell>
+
+mat = loadmat(data_dir+'test_NL_mlast_nruns70_pinc0.001_addinc0_mnwt7_mxwt5_cf99_R1000000_netprms:_60_ws_-0.0333333-4_1_5_ncorr.mat')
+#mat = loadmat(data_dir+'test_NL_mlast_nruns70_pinc0.001_addinc0_mnwt7_mxwt5_cf99_R1000000_netprms:_60_oho_-6_1_5_ncorr.mat')
+
+# <codecell>
+
+n_nets = shape(mat['pnets'])[1]
+n_runs = shape(mat['pnets'][0,0])[1]
+n_controls = shape(mat['pnets_spr_out'][0,0])[0]
+
+T_out = Timelines()
+T_int = Timelines()
+for i in range(n_nets):
+    tl = Timeline()
+    CT_out = Timelines(with_control=False)
+    CT_in = Timelines(with_control=False)    
+    for j in arange(0,n_runs):#,10):
+        print "j=%i"%j
+        if floor(j%50)==0:
+            print j
+
+        tl.add_gen(mat['pnets'][0,i][0,j].toarray().tolist())
+        
+        if j==0:
+                c_out=[]
+                c_in=[]
+        for k in range(n_controls):
+            print "k=%i"%k
+            if j==0:
+                c_out.append(Timeline())
+                c_in.append(Timeline())
+            
+            control_out = mat['pnets_spr_out'][i,j,k].toarray().tolist()
+            c_out[k].add_gen(control_out)
+            control_in = mat['pnets_spr_in'][i,j,k].toarray().tolist()
+            c_in[k].add_gen(control_in)
+        
+        CT_out.add_timelines(c_out)
+        CT_in.add_timelines(c_in)
+        
+    T_out.add_timeline(tl, CT_out) 
+    T_int.add_timeline(tl, CT_in)
+        
+
+# <codecell>
+
+#g = Graph.Weighted_Adjacency(mat['pnets'][0,0][0,0].toarray().tolist())
+
+# <rawcell>
+
+# n_nets = shape(mat['pnets'])[1]
+# n_runs = shape(mat['pnets'][0,0])[1]
+# 
+# q_betweeness = zeros([n_nets, n_runs])
+# n_betweeness = zeros([n_nets, n_runs])
+# q_walktrap = zeros([n_nets, n_runs])
+# n_walktrap = zeros([n_nets, n_runs])
+# q_infomap = zeros([n_nets, n_runs])
+# n_infomap = zeros([n_nets, n_runs])
+# codelength = zeros([n_nets, n_runs])
+# mean_path_length = zeros([n_nets, n_runs])
+# mean_clustering = zeros([n_nets, n_runs])
+# betweeness_change = zeros([n_nets, n_runs])
+# 
+# rc_out = zeros([n_nets, n_runs, 9])
+# rc_in = zeros([n_nets, n_runs, 9])
+# rc_out_int = zeros([n_nets, n_runs])
+# rc_in_int = zeros([n_nets, n_runs])
+# close('all')
+# node_size = 100
+# alpha = .9
+# width = .4
+# 
+# for i in range(n_nets):
+#     last_betweeness = 0
+#     for j in arange(0,n_runs):#,10):
+#         if floor(j%50)==0:
+#             print j
+# 
+#         g = Graph.Weighted_Adjacency(mat['pnets'][0,i][0,j].toarray().tolist())
+#         
+#         
+#         #b = g.community_edge_betweenness(directed=True, weights=g.es["weight"])
+#         #n_betweeness.append(b.optimal_count)
+#         #q_betweeness.append(b.as_clustering().q)
+#         
+#         #w = g.community_walktrap(weights=g.es["weight"], steps=100)
+#         #n_walktrap.append(w.optimal_count)
+#         #q_walktrap.append(w.as_clustering().q)
+#         
+#         infomap = g.community_infomap(edge_weights=g.es["weight"])
+#         n_infomap[i,j] = infomap.cluster_graph().vcount()
+#         q_infomap[i,j] = infomap.q
+#         codelength[i, j] = infomap.codelength
+# 
+#         mean_path_length[i,j] = mean(g.shortest_paths(weights='weight'))
+#         mean_clustering[i,j] = mean(g.transitivity_local_undirected(weights='weight'))
+#         
+#         betweeness_sequence = g.edge_betweenness(weights='weight')
+#         if last_betweeness==0:
+#             last_betweeness = betweeness_sequence
+#         else:
+#             betweeness_change[i,j] = kendalltau(last_betweeness, betweeness_sequence)[0]
+#         
+#         rc_out[i,j,:] = rich_club_coefficient(g, scores_name='out_strength', control = mat['pnets_spr_out'][i,j,:])
+#         rc_in[i,j,:] = rich_club_coefficient(g, scores_name='in_strength', control = mat['pnets_spr_in'][i,j,:])
+#         rc_out_int[i,j] = sum(rc_out[i,j,:]-1)
+#         rc_in_int[i,j] = sum(rc_in[i,j,:]-1)
+#         
+#         
+#             
+#         if j in [0, 180, 480]:
+#             savetxt('inrichclub_frame%i.txt'%j, rc_in[i,j,:])
+#             savetxt('outrichclub_frame%i.txt'%j, rc_out[i,j,:])
+#             
+#             figure()
+#             plot(rc_in[i,j,:], 'b')
+#             plot(rc_out[i,j,:], 'g')
+#             #show()
+#             savefig('richclub_frame%i.pdf'%j)
+#             
+#         #net = nx.DiGraph(mat['pnets'][0,i][0,j])
+#         #pos=nx.spring_layout(net)
+#         #figure()
+#         #title(str(i)+', '+str(z.as_clustering().q))
+#         #nx.draw(net,pos,node_size=node_size,alpha=alpha, width=width, with_labels=False)
+#         #show()
 
 # <codecell>
 
