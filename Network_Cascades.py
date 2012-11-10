@@ -17,22 +17,31 @@ from scipy.stats import kendalltau, spearmanr, rankdata
 
 # <codecell>
 
-def directed_spr(G, n=1000, weighted='out'):
+def directed_spr(G, n=10, weighted='out'):
     #des = []
     #tes = []
     g = G.copy()
     nes = len(g.es)
-    for i in range(n):
+
+    i=0
+    while i<(n*nes):
         e1 = randint(nes)
         e2 = randint(nes)
-        while e1==e2: #In case we select the same edge twice, roll again.
-            e2 = randint(nes)
+        #In case we select the same edge twice, roll again.
+        if e1==e2:
+            continue
+
         s1 = g.es[e1].source
         t1 = g.es[e1].target
         a1 = g.es[e1].attributes()
         s2 = g.es[e2].source
         t2 = g.es[e2].target
         a2 = g.es[e2].attributes()
+        #If either of the to-be-newly-wired connections already exist, roll again.
+        #This prevents multiple edges going in the same direction between two nodes.
+        if t2 in g.neighbors(s1, mode=1) or t1 in g.neighbors(s2,mode=1):
+            continue
+       
         n = len(g.es)
         g.delete_edges([e1, e2])
         m = len(g.es)
@@ -51,6 +60,7 @@ def directed_spr(G, n=1000, weighted='out'):
             
         #des.append(len(g.es)-n)
         #tes.append(len(g.es))
+        i+=1
     return g
 
 # <codecell>
