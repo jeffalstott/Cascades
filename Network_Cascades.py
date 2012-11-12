@@ -279,8 +279,8 @@ class Timeline:
             
         self.rc_out.append(rich_club_coefficient(g, scores_name='out_strength', rewire=False))
         self.rc_in.append(rich_club_coefficient(g, scores_name='in_strength', rewire=False))
-        self.rc_out_int.append(sum(rc_out[-1]-1))
-        self.rc_in_int.append(sum(rc_in[-1]-1))
+        self.rc_out_int.append(sum(self.rc_out[-1]-1))
+        self.rc_in_int.append(sum(self.rc_in[-1]-1))
 
 # <codecell>
 
@@ -295,45 +295,40 @@ mat = loadmat(data_dir+'test_NL_mlast_nruns70_pinc0.001_addinc0_mnwt7_mxwt5_cf99
 
 n_nets = shape(mat['pnets'])[1]
 n_runs = shape(mat['pnets'][0,0])[1]
-n_controls = shape(mat['pnets_spr_out'][0,0])[0]
+#n_controls = shape(mat['pnets_spr_out'][0,0])[0]
 
-T_out = Timelines()
-T_int = Timelines()
+T_out = Timelines(with_control=False)
+#T_int = Timelines()
 for i in range(n_nets):
     tl = Timeline()
     CT_out = Timelines(with_control=False)
-    CT_in = Timelines(with_control=False)    
+#    CT_in = Timelines(with_control=False)    
     for j in arange(0,n_runs):#,10):
-        print "j=%i"%j
         if floor(j%50)==0:
-            print j
+            print "Generation = %i"%j
 
         tl.add_gen(mat['pnets'][0,i][0,j].toarray().tolist())
         
         if j==0:
                 c_out=[]
                 c_in=[]
-        for k in range(n_controls):
-            print "k=%i"%k
-            if j==0:
-                c_out.append(Timeline())
-                c_in.append(Timeline())
-            
-            control_out = mat['pnets_spr_out'][i,j,k].toarray().tolist()
-            c_out[k].add_gen(control_out)
-            control_in = mat['pnets_spr_in'][i,j,k].toarray().tolist()
-            c_in[k].add_gen(control_in)
+     #   for k in range(n_controls):
+     #       print "k=%i"%k
+     #       if j==0:
+     #           c_out.append(Timeline())
+     #           c_in.append(Timeline())
+     #       
+     #       control_out = mat['pnets_spr_out'][i,j,k].toarray().tolist()
+     #       c_out[k].add_gen(control_out)
+     #       control_in = mat['pnets_spr_in'][i,j,k].toarray().tolist()
+     #       c_in[k].add_gen(control_in)
+     #   
+     #   CT_out.add_timelines(c_out)
+     #   CT_in.add_timelines(c_in)
         
-        CT_out.add_timelines(c_out)
-        CT_in.add_timelines(c_in)
+    T_out.add_timeline(tl)#, CT_out) 
+    #T_int.add_timeline(tl, CT_in)
         
-    T_out.add_timeline(tl, CT_out) 
-    T_int.add_timeline(tl, CT_in)
-        
-
-# <codecell>
-
-#g = Graph.Weighted_Adjacency(mat['pnets'][0,0][0,0].toarray().tolist())
 
 # <rawcell>
 
@@ -478,8 +473,7 @@ from matplotlib.ticker import MultipleLocator, FormatStrFormatter
 #plot(n_betweeness)
 figure()
 #plot(q_betweeness)
-y_vals = mean(n_infomap, axis=0)
-error = std(n_infomap, axis=0)
+y_vals, error  = T_out.n_infomap
 plot(x_vals, y_vals)
 fill_between(x_vals, y_vals-error, y_vals+error, alpha=.5)
 
@@ -502,8 +496,7 @@ savefig(data_dir+'Modularity.pdf', bbox_inches='tight')
 # <codecell>
 
 figure()
-y_vals = mean(codelength, axis=0)
-error = std(codelength, axis=0)
+y_vals, error = T_out.codelength
 plot(x_vals, y_vals)
 fill_between(x_vals, y_vals-error, y_vals+error, alpha=.5)
 
@@ -546,13 +539,11 @@ savefig(data_dir+'RichClubInt.pdf', bbox_inches='tight')
 f = figure()
 ax = f.add_subplot(111)
 handles = {}
-y_vals = mean(mean_path_length, axis=0)
-error = std(mean_path_length, axis=0)
+y_vals, error = T_out.mean_path_length
 handles['In Strength'] = ax.plot(x_vals, y_vals, label='Path Length', color='b')
 fill_between(x_vals, y_vals-error, y_vals+error, color='b', alpha=.5)
 
-y_vals = mean(mean_clustering, axis=0)
-error = std(mean_clustering, axis=0)
+y_vals, error = T_out.mean_clustering
 handles['Out Strength'] = ax.plot(x_vals, y_vals, label='Clustering', color='g')
 fill_between(x_vals, y_vals-error, y_vals+error, color='g', alpha=.5)
 
@@ -571,10 +562,23 @@ ax.legend(handles, labels, loc=1)
 # <codecell>
 
 figure()
-y_vals = mean(betweeness_change, axis=0)
-error = std(betweeness_change, axis=0)
-plot(x_vals, y_vals)
-fill_between(x_vals, y_vals-error, y_vals+error, alpha=.5)
+y_vals, error = T_out.betweeness_change_kendall
+plot(x_vals[1:], y_vals)
+fill_between(x_vals[1:], y_vals-error, y_vals+error, alpha=.5)
+
+xlabel("Cascades (n x 10$^{6}$)")
+ylabel("betweeness_change")
+
+#savetxt('compression.txt', mean(codelength, axis=0))
+#savefig(data_dir+'Compression.pdf', bbox_inches='tight')
+#title("Network Compression with Learning")
+
+# <codecell>
+
+figure()
+y_vals, error = T_out.betweeness_change_spearmanr
+plot(x_vals[1:], y_vals)
+fill_between(x_vals[1:], y_vals-error, y_vals+error, alpha=.5)
 
 xlabel("Cascades (n x 10$^{6}$)")
 ylabel("betweeness_change")
