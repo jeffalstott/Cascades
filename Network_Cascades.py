@@ -17,14 +17,14 @@ from scipy.stats import kendalltau, spearmanr, rankdata
 
 # <codecell>
 
-def directed_spr(G, n=10, weighted='out'):
+def directed_spr(G, n_rewires=10, weighted='out'):
     #des = []
     #tes = []
     g = G.copy()
     nes = len(g.es)
 
     i=0
-    while i<(n*nes):
+    while i<(n_rewires*nes):
         e1 = randint(nes)
         e2 = randint(nes)
         #In case we select the same edge twice, roll again.
@@ -150,7 +150,7 @@ def rich_club_coefficient(graph, fraction=None, highest=True, scores_name=None, 
     elif rewire:
         control_rc_coefficient = zeros(len(fraction))
         for i in range(average):
-            random_graph = directed_spr(graph, n=rewire, weighted=randomization)
+            random_graph = directed_spr(graph, n_rewires=rewire, weighted=randomization)
             control_rc_coefficient = control_rc_coefficient +\
                 rich_club_coefficient(random_graph, fraction=fraction, highest=highest, \
                     scores_name=scores_name, rewire=False)

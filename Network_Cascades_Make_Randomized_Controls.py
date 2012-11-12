@@ -13,14 +13,14 @@ from scipy.sparse import csc, csc_matrix
 
 # <codecell>
 
-def directed_spr(G, n=10, weighted='out'):
+def directed_spr(G, n_rewires=10, weighted='out'):
     #des = []
     #tes = []
     g = G.copy()
     nes = len(g.es)
 
     i=0
-    while i<(n*nes):
+    while i<(n_rewires*nes):
         e1 = randint(nes)
         e2 = randint(nes)
         #In case we select the same edge twice, roll again.
@@ -94,7 +94,7 @@ for randomization in randomizations:
                 print i, j
             g = Graph.Weighted_Adjacency(mat['pnets'][0,i][0,j].toarray().tolist())
             for k in range(n_iters):
-                random_graph = directed_spr(g, n=normalized, weighted=randomization)
+                random_graph = directed_spr(g, n_rewires=normalized, weighted=randomization)
                 mat['pnets_spr_'+randomization][i, j, k] = csc_matrix(random_graph.get_adjacency(attribute='weight').data)
 
 # <codecell>
