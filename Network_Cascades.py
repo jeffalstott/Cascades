@@ -23,14 +23,16 @@ data_dir = "/data/alstottjd/Sini/"
 # <codecell>
 
 #mat = loadmat(data_dir+'test_NL_mlast_nruns70_pinc0.001_addinc0_mnwt7_mxwt5_cf99_R1000000_netprms:_60_ws_-0.0333333-4_1_5_ncorr.mat')
+#data_name='WSlast'
 mat = loadmat(data_dir+'test_NL_mlast_nruns70_pinc0.001_addinc0_mnwt7_mxwt5_cf99_R1000000_netprms:_60_oho_-6_1_5_ncorr.mat')
+data_name='OHOlast'
 
 # <codecell>
 
 n_nets = shape(mat['pnets'])[1]
 n_runs = shape(mat['pnets'][0,0])[1]
 n_controls = shape(mat['pnets_spr_out'][0,0])[0]
-step_size = 10.0
+step_size = 5.0
 
 n_samples = ceil(n_runs/step_size)
 
@@ -62,7 +64,7 @@ for i in range(n_nets):
 
         g = Graph.Weighted_Adjacency(mat['pnets'][0,i][0,j].toarray().tolist())
         
-        j = ceil(j/step_size)
+        sample = ceil(j/step_size)
         
         #b = g.community_edge_betweenness(directed=True, weights=g.es["weight"])
         #n_betweeness.append(b.optimal_count)
@@ -73,33 +75,33 @@ for i in range(n_nets):
         #q_walktrap.append(w.as_clustering().q)
         
         infomap = g.community_infomap(edge_weights=g.es["weight"])
-        n_infomap[i,j] = infomap.cluster_graph().vcount()
-        q_infomap[i,j] = infomap.q
-        codelength[i, j] = infomap.codelength
+        n_infomap[i,sample] = infomap.cluster_graph().vcount()
+        q_infomap[i,sample] = infomap.q
+        codelength[i, sample] = infomap.codelength
 
-        mean_path_length[i,j] = mean(g.shortest_paths(weights='weight'))
-        mean_clustering[i,j] = mean(g.transitivity_local_undirected(weights='weight'))
+        mean_path_length[i,sample] = mean(g.shortest_paths(weights='weight'))
+        mean_clustering[i,sample] = mean(g.transitivity_local_undirected(weights='weight'))
         
         betweeness_sequence = g.edge_betweenness(weights='weight')
         if last_betweeness==0:
             last_betweeness = betweeness_sequence
         else:
-            betweeness_change[i,j] = kendalltau(last_betweeness, betweeness_sequence)[0]
+            betweeness_change[i,sample] = kendalltau(last_betweeness, betweeness_sequence)[0]
         
-        rc_out[i,j,:] = richclub.rich_club_coefficient(g, scores_name='out_strength', control = mat['pnets_spr_out'][i,j,:])
-        rc_in[i,j,:] = richclub.rich_club_coefficient(g, scores_name='in_strength', control = mat['pnets_spr_in'][i,j,:])
-        rc_out_int[i,j] = sum(rc_out[i,j,:]-1)
-        rc_in_int[i,j] = sum(rc_in[i,j,:]-1)
+        rc_out[i,sample,:] = richclub.rich_club_coefficient(g, scores_name='out_strength', control = mat['pnets_spr_out'][i,j,:])
+        rc_in[i,sample,:] = richclub.rich_club_coefficient(g, scores_name='in_strength', control = mat['pnets_spr_in'][i,j,:])
+        rc_out_int[i,sample] = sum(rc_out[i,sample,:]-1)
+        rc_in_int[i,sample] = sum(rc_in[i,sample,:]-1)
         
         
             
         if j in [0, 180, 480]:
-            savetxt('inrichclub_frame%i.txt'%j, rc_in[i,j,:])
-            savetxt('outrichclub_frame%i.txt'%j, rc_out[i,j,:])
+            savetxt('inrichclub_frame%i.txt'%j, rc_in[i,sample,:])
+            savetxt('outrichclub_frame%i.txt'%j, rc_out[i,sample,:])
             
             figure()
-            plot(rc_in[i,j,:], 'b')
-            plot(rc_out[i,j,:], 'g')
+            plot(rc_in[i,sample,:], 'b')
+            plot(rc_out[i,sample,:], 'g')
             #show()
             savefig('richclub_frame%i.pdf'%j)
             
@@ -127,6 +129,7 @@ s3 = floor((480.0/n_runs)*n_samples)
 ax1 = f.add_subplot(131)
 ax1.plot(x_vals, rc_in[0,s1, :], label='In Strength', color='b')
 ax1.plot(x_vals, rc_out[0,s1,:], label='Out Strength', color='g')
+ax1.plot(xlim(), (1,1), 'k--')
 plt.setp(ax1.get_xticklabels(), visible=False)
 ylabel("Rich Club Coefficient")
 text(.5, .9, '0 Cascades', transform = ax1.transAxes, horizontalalignment='center', fontsize=10)
@@ -138,6 +141,7 @@ plt.xticks(x_vals[::2], x_vals[::2])
 ax2 = f.add_subplot(132, sharey=ax1)
 ax2.plot(x_vals, rc_in[0,s2,:], label='In Strength', color='b')
 ax2.plot(x_vals, rc_out[0,s2,:], label='Out Strength', color='g')
+ax2.plot(xlim(), (1,1), 'k--')
 plt.setp(ax2.get_yticklabels(), visible=False)
 xlabel('Strength Decile')
 plt.xticks(x_vals[::2], (x_vals[::2]*100).astype(int))
@@ -148,6 +152,7 @@ text(.5, .9, '3.6x10$^{6}$ Cascades', transform = ax2.transAxes, horizontalalign
 ax3 = f.add_subplot(133, sharey=ax1)
 ax3.plot(x_vals, rc_in[0,s3,:], label='In Strength', color='b')
 ax3.plot(x_vals, rc_out[0,s3,:], label='Out Strength', color='g')
+ax3.plot(xlim(), (1,1), 'k--')
 plt.setp(ax3.get_yticklabels(), visible=False)
 plt.setp(ax3.get_xticklabels(), visible=False)
 text(.5, .9, '9.6x10$^{6}$ Cascades', transform = ax3.transAxes, horizontalalignment='center', fontsize=10)
@@ -158,7 +163,7 @@ handles, labels = ax3.get_legend_handles_labels()
 ax3.legend(handles, labels, loc=5, fontsize=8)
 
 
-savefig(data_dir+'RichClubSamples.pdf', bbox_inches='tight')
+savefig(data_dir+data_name+'_'+'RichClubSamples.pdf', bbox_inches='tight')
 #suptitle('Rich Club Growth and Death')
 
 # <codecell>
@@ -191,7 +196,7 @@ inset_ax.yaxis.set_major_locator(MultipleLocator(.1))
 
 #savetxt('modules.txt', mean(n_infomap, axis=0))
 #savetxt('modularity.txt', mean(q_infomap, axis=0))
-savefig(data_dir+'Modularity.pdf', bbox_inches='tight')
+savefig(data_dir+data_name+'_'+'Modularity.pdf', bbox_inches='tight')
 #title("Modularity with Learning")
 
 # <codecell>
@@ -206,7 +211,7 @@ xlabel("Cascades (n x 10$^{6}$)")
 ylabel("Bits to Represent Network")
 
 #savetxt('compression.txt', mean(codelength, axis=0))
-savefig(data_dir+'Compression.pdf', bbox_inches='tight')
+savefig(data_dir+data_name+'_'+'Compression.pdf', bbox_inches='tight')
 #title("Network Compression with Learning")
 
 # <codecell>
@@ -224,6 +229,8 @@ error = std(rc_out_int, axis=0)
 handles['Out Strength'] = ax.plot(x_vals, y_vals, label='Out Strength', color='g')
 fill_between(x_vals, y_vals-error, y_vals+error, color='g', alpha=.5)
 
+plot(xlim(), (0,0), 'k--')
+
 
 xlabel("Cascades (n x 10$^{6}$)")
 ylabel("Integrated Rich Club Index")
@@ -233,7 +240,7 @@ ax.legend(handles, labels, loc=1)
 
 #savetxt('inrichclubint.txt', rc_in_int)
 #savetxt('outrichclubint.txt', rc_out_int)
-savefig(data_dir+'RichClubInt.pdf', bbox_inches='tight')
+savefig(data_dir+data_name+'_'+'RichClubInt.pdf', bbox_inches='tight')
 #title("Rich Club with Learning")
 
 # <codecell>
