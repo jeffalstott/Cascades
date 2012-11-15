@@ -1,3 +1,9 @@
+from igraph import Graph
+from scipy.stats import kendalltau, spearmanr
+from numpy import mean, std, asarray
+import richclub
+
+
 class Timelines:
     def __init__(self, with_control=True):
         self.tls = []
@@ -105,7 +111,7 @@ class Timeline:
             self.betweeness_change_kendall.append(kendalltau(self.last_betweeness, betweeness_sequence)[0])
             self.betweeness_change_spearmanr.append(spearmanr(self.last_betweeness, betweeness_sequence)[0])
 
-        self.rc_out.append(rich_club_coefficient(g, scores_name='out_strength', rewire=False))
-        self.rc_in.append(rich_club_coefficient(g, scores_name='in_strength', rewire=False))
+        self.rc_out.append(richclub.rich_club_coefficient(g, scores_name='out_strength', rewire=False))
+        self.rc_in.append(richclub.rich_club_coefficient(g, scores_name='in_strength', rewire=False))
         self.rc_out_int.append(sum(self.rc_out[-1] - 1))
-        self.rc_in_int.append(sum(self.rc_in[-1]-1))
+        self.rc_in_int.append(sum(self.rc_in[-1] - 1))
