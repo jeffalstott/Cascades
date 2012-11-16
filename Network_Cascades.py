@@ -122,9 +122,28 @@ h = w/1.6180
 #f = figure(figsize=(w,h))
 f = figure()
 
-s1 = 0
-s2 = floor((180.0/n_runs)*n_samples)
-s3 = floor((480.0/n_runs)*n_samples)
+n_cascades = 10.0
+cascades_per_run = n_cascades/n_runs
+
+c1 = 0
+c2 = 3.6
+c3 = 9.6
+
+r1 = round(c1/cascades_per_run)
+r2 = round(c2/cascades_per_run)
+r3 = round(c3/cascades_per_run)
+
+#c1 = r1*cascades_per_step/10**6
+#c2 = r2*cascades_per_step/10**6
+#c3 = r3*cascades_per_step/10**6
+
+s1 = floor((r1/n_runs)*n_samples)
+s2 = floor((r2/n_runs)*n_samples)
+s3 = floor((r3/n_runs)*n_samples)
+
+
+
+
 
 ax1 = f.add_subplot(131)
 ax1.plot(x_vals, rc_in[0,s1, :], label='In Strength', color='b')
@@ -145,7 +164,7 @@ ax2.plot(xlim(), (1,1), 'k--')
 plt.setp(ax2.get_yticklabels(), visible=False)
 xlabel('Strength Decile')
 plt.xticks(x_vals[::2], (x_vals[::2]*100).astype(int))
-text(.5, .9, '3.6x10$^{6}$ Cascades', transform = ax2.transAxes, horizontalalignment='center', fontsize=10)
+text(.5, .9, '$%.1f*10^{6}$ Cascades'%c2, transform = ax2.transAxes, horizontalalignment='center', fontsize=10)
 #handles, labels = ax.get_legend_handles_labels()
 #ax.legend(handles, labels, loc=1)
 
@@ -155,7 +174,7 @@ ax3.plot(x_vals, rc_out[0,s3,:], label='Out Strength', color='g')
 ax3.plot(xlim(), (1,1), 'k--')
 plt.setp(ax3.get_yticklabels(), visible=False)
 plt.setp(ax3.get_xticklabels(), visible=False)
-text(.5, .9, '9.6x10$^{6}$ Cascades', transform = ax3.transAxes, horizontalalignment='center', fontsize=10)
+text(.5, .9, '$%.1f*10^{6}$ Cascades'%c3, transform = ax3.transAxes, horizontalalignment='center', fontsize=10)
 #xlabel('Strength Decile')
 plt.xticks(x_vals[::2], x_vals[::2])
 
@@ -194,8 +213,8 @@ ylabel("Modularity Index", fontsize=10)
 inset_ax.yaxis.set_major_locator(MultipleLocator(.1))
 
 
-#savetxt('modules.txt', mean(n_infomap, axis=0))
-#savetxt('modularity.txt', mean(q_infomap, axis=0))
+savetxt(data_dir+data_name+'_'+'modules.txt', mean(n_infomap, axis=0))
+savetxt(data_dir+data_name+'_'+'modularity.txt', mean(q_infomap, axis=0))
 savefig(data_dir+data_name+'_'+'Modularity.pdf', bbox_inches='tight')
 #title("Modularity with Learning")
 
@@ -210,7 +229,7 @@ fill_between(x_vals, y_vals-error, y_vals+error, alpha=.5)
 xlabel("Cascades (n x 10$^{6}$)")
 ylabel("Bits to Represent Network")
 
-#savetxt('compression.txt', mean(codelength, axis=0))
+savetxt(data_dir+data_name+'_'+'compression.txt', mean(codelength, axis=0))
 savefig(data_dir+data_name+'_'+'Compression.pdf', bbox_inches='tight')
 #title("Network Compression with Learning")
 
@@ -238,8 +257,8 @@ ylabel("Integrated Rich Club Index")
 handles, labels = ax.get_legend_handles_labels()
 ax.legend(handles, labels, loc=1)
 
-#savetxt('inrichclubint.txt', rc_in_int)
-#savetxt('outrichclubint.txt', rc_out_int)
+savetxt(data_dir+data_name+'_'+'inrichclubint.txt', rc_in_int)
+savetxt(data_dir+data_name+'_'+'outrichclubint.txt', rc_out_int)
 savefig(data_dir+data_name+'_'+'RichClubInt.pdf', bbox_inches='tight')
 #title("Rich Club with Learning")
 
@@ -265,10 +284,7 @@ xlabel("Cascades (n x 10$^{6}$)")
 handles, labels = ax.get_legend_handles_labels()
 ax.legend(handles, labels, loc=1)
 
-#savetxt('inrichclubint.txt', rc_in_int)
-#savetxt('outrichclubint.txt', rc_out_int)
-#savefig(data_dir+'RichClubInt.pdf', bbox_inches='tight')
-#title("Rich Club with Learning")
+savefig(data_dir+data_name+'_'+'PathLengthClustering.pdf', bbox_inches='tight')
 
 # <codecell>
 
@@ -279,40 +295,10 @@ plot(x_vals[1:], y_vals)
 fill_between(x_vals[1:], y_vals-error, y_vals+error, alpha=.5)
 
 xlabel("Cascades (n x 10$^{6}$)")
-ylabel("betweeness_change")
+ylabel("Correlation in Nodes' Betweeness Centrality Rank Order")
 
-#savetxt('compression.txt', mean(codelength, axis=0))
-#savefig(data_dir+'Compression.pdf', bbox_inches='tight')
-#title("Network Compression with Learning")
-
-# <codecell>
-
-x_vals = arange(-1*(shape(rc_in_int)[1]-1), shape(rc_in_int)[1], 1)
-
-# <codecell>
-
-##Different Rich Club Metrics' Correlation with Each Other
-f = figure()
-ax = f.add_subplot(111)
-handles = {}
-
-corr_out_in = zeros([shape(rc_in_int)[0], shape(rc_in_int)[1]*2-1])
-
-for i in range(shape(rc_in_int)[0]):
-    corr_out_in[i] = correlate(array(rc_in_int[i]), array(rc_out_int[i]))
-##"When does in strength look like out strength?"
-#ax.plot(x, mean(corr_out_in, axis=0))
-y_vals = mean(corr_out_in, axis=0)
-error = std(corr_out_in, axis=0)
-plot(x_vals, y_vals)
-fill_between(x_vals, y_vals-error, y_vals+error, alpha=.5)
-
-max_corr_out_in = x_vals[argmax(mean(corr_out_in, axis=0))]
-ax.plot((max_corr_out_in, max_corr_out_in), ylim(), 'b--')
-
-xlabel("Cascades (n x 10$^{6}$)")
-ylabel("Cross-Correlation")
-title("In Strength Rich Club and Out Strength Rich Club Cross Correlation")
+savetxt(data_dir+data_name+'_'+'Rerouting.txt', mean(codelength, axis=0))
+savefig(data_dir+data_name+'_'+'Rerouting.pdf', bbox_inches='tight')
 
 # <codecell>
 
@@ -320,30 +306,38 @@ def plot_line(x, y, ax, label, color='b'):
 
     y_vals = mean(y, axis=0)
     error = std(y, axis=0)
-    ax.plot(x_vals, y_vals, color, label=label)
+    ax.plot(x, y_vals, color, label=label)
     fill_between(x_vals, y_vals-error, y_vals+error, alpha=.5, color = color)
 
 # <codecell>
 
 def correlation_figure(a, b, ax, color='b', label=None):
     
-    
     corr = zeros([shape(a)[0], shape(a)[1]*2-1])
     for i in range(shape(a)[0]):
         corr[i] = correlate(array(a[i]), array(b[i]))
     
     x_vals = arange(-1*(shape(a)[1]-1), shape(a)[1], 1)
-    
-    
+
     plot_line(x_vals, corr, ax, color = color, label=label)
     
     max_corr = x_vals[argmax(mean(corr, axis=0))]
     
     ax.plot((max_corr, max_corr), ylim(), color+'--')
     xlabel("Cascades (n x 10$^{6}$)")
-    ylabel("Cross-Correlation")
-    
-    
+    ylabel("Cross-Correlation")    
+
+# <codecell>
+
+##Different Rich Club Metrics' Correlation with Each Other
+##Rich Club correlation with Modularity
+f = figure()
+ax = f.add_subplot(111)
+correlation_figure(rc_in_int, rc_out_int, ax)
+
+xlabel("Cascades (n x 10$^{6}$)")
+ylabel("Cross-Correlation")
+title("In Strength Rich Club and Out Strength Rich Club Cross Correlation")
 
 # <codecell>
 
