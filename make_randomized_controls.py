@@ -37,7 +37,7 @@ for randomization in randomizations:
                 print i, j
             g = Graph.Weighted_Adjacency(mat['pnets'][0,i][0,j].toarray().tolist())
             for k in range(n_iters):
-                random_graph = richclub.directed_spr(g, n_rewires=n_rewires, weighted=randomization)
+                random_graph = richclub.directed_spr(g, n_rewires=n_rewires, preserve=randomization)
                 mat['pnets_spr_'+randomization][i, j, k] = csc_matrix(random_graph.get_adjacency(attribute='weight').data)
 savemat(data_directory+str(n_rewires)+','+str(n_iters)+'_'+filename, mat)
         """%(data_directory, filename, n_rewires, n_iters)
