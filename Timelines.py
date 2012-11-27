@@ -1,33 +1,32 @@
 from igraph import Graph
 from scipy.stats import kendalltau, spearmanr
-from numpy import mean, std, empty
+from numpy import mean, std, empty, shape
 import richclub
 
 
 class Timelines:
     def __init__(self, with_control=True):
         self.tls = []
-        self.control = with_control
+        self.with_control = with_control
 
-        if self.control:
+        if self.with_control:
             self.controls = []
 
     def add_timeline(self, tl, control_tls=None):
         self.tls.append(tl)
-        if self.control:
+        if self.with_control:
             self.controls.append(control_tls)
 
     def add_timelines(self, tl, control_tls=None):
         for i in tl:
             self.add_timeline(i)
-        if self.control:
+        if self.with_control:
             for i in control_tls:
                 self.controls.append(i)
 
     def raw_data(self, name):
         n_tls = len(self.tls)
-        raw_data = empty(n_tls,
-            dtype=type(getattr(self.tls[0], name)))
+        raw_data = empty((n_tls,)+shape(getattr(self.tls[0], name)))
 
         for i in range(n_tls):
             raw_data[i] = getattr(self.tls[i], name)
@@ -36,13 +35,20 @@ class Timelines:
 
     def raw_control(self, name):
         n_tls = len(self.tls)
-        raw_control = empty(n_tls,
-            dtype=type(self.controls[0].raw(name)))
+        raw_control = empty((n_tls,)+
+            shape(self.controls[0].raw_data(name)))
 
         for i in range(n_tls):
-            raw_control[i] = self.controls[i].raw(name)
+            raw_control[i] = self.controls[i].raw_data(name)
 
         return raw_control
+
+    def mean_control(self, name):
+        raw_control = self.raw_control(name)
+        mean_control = mean(raw_control, axis=1)
+
+        return mean_control
+
 
     def data(self, name):
         raw_data = self.raw_data(name)
@@ -52,10 +58,9 @@ class Timelines:
         return m, s
 
     def control(self, name):
-        raw_control = self.raw_control(name)
-        raw_control = mean(raw_control, axis=1)
-        m = mean(raw_control, axis=0)
-        s = std(raw_control, axis=0)
+        mean_control = self.mean_control(name)
+        m = mean(mean_control, axis=0)
+        s = std(mean_control, axis=0)
 
         return m, s
 
@@ -118,18 +123,25 @@ class Timeline:
         self.codelength.append(infomap.codelength)
 
         self.mean_path_length.append(mean(g.shortest_paths(weights='weight')))
-        self.mean_clustering.append(mean(g.transitivity_local_undirected(weights='weight')))
+        self.mean_clustering.append(
+                mean(g.transitivity_local_undirected(weights='weight')))
 
         betweeness_sequence = g.edge_betweenness(weights='weight')
 
         if self.last_betweeness is None:
             self.last_betweeness = betweeness_sequence
         else:
-            self.betweeness_change_kendall.append(kendalltau(self.last_betweeness, betweeness_sequence)[0])
-            self.betweeness_change_spearmanr.append(spearmanr(self.last_betweeness, betweeness_sequence)[0])
+            self.betweeness_change_kendall.append(
+                    kendalltau(self.last_betweeness, betweeness_sequence)[0])
+            self.betweeness_change_spearmanr.append(
+                    spearmanr(self.last_betweeness, betweeness_sequence)[0])
 
-        self.rc_out.append(richclub.rich_club_coefficient(g, scores_name='out_strength', rewire=False))
-        self.rc_in.append(richclub.rich_club_coefficient(g, scores_name='in_strength', rewire=False))
+        self.rc_out.append(
+                richclub.rich_club_coefficient(
+                    g, scores_name='out_strength', rewire=False))
+        self.rc_in.append(
+                richclub.rich_club_coefficient(
+                    g, scores_name='in_strength', rewire=False))
         self.rc_out_int.append(sum(self.rc_out[-1] - 1))
         self.rc_in_int.append(sum(self.rc_in[-1] - 1))
 
