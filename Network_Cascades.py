@@ -9,12 +9,9 @@ rc('font', family='serif')
 
 # <codecell>
 
-from scipy.io import loadmat
-from igraph import Graph
 from scipy.signal import correlate
-from scipy.stats import kendalltau
-from numpy import mean, std, asarray
-import richclub
+import cPickle as pickle
+from scipy.io import loadmat
 
 # <codecell>
 
@@ -75,93 +72,6 @@ for i in range(n_nets):
     tl.close_gens()
     T_out.add_timeline(tl, CT_out) 
     T_in.add_timeline(tl, CT_in)
-
-# <rawcell>
-
-# n_nets = shape(mat['pnets'])[1]
-# n_runs = shape(mat['pnets'][0,0])[1]
-# n_controls = shape(mat['pnets_spr_out'][0,0])[0]
-# step_size = 5.0
-# 
-# n_samples = ceil(n_runs/step_size)
-# 
-# q_betweeness = zeros([n_nets, n_samples])
-# n_betweeness = zeros([n_nets, n_samples])
-# q_walktrap = zeros([n_nets, n_samples])
-# n_walktrap = zeros([n_nets, n_samples])
-# q_infomap = zeros([n_nets, n_samples])
-# n_infomap = zeros([n_nets, n_samples])
-# codelength = zeros([n_nets, n_samples])
-# mean_path_length = zeros([n_nets, n_samples])
-# mean_clustering = zeros([n_nets, n_samples])
-# betweeness_change = zeros([n_nets, n_samples])
-# 
-# rc_out = zeros([n_nets, n_samples, 9])
-# rc_in = zeros([n_nets, n_samples, 9])
-# rc_out_int = zeros([n_nets, n_samples])
-# rc_in_int = zeros([n_nets, n_samples])
-# 
-# node_size = 100
-# alpha = .9
-# width = .4
-# 
-# for i in range(n_nets):
-#     last_betweeness = 0
-#     for j in arange(0,n_runs, step_size):
-#         if floor(j%100)==0:
-#             print j
-# 
-#         g = Graph.Weighted_Adjacency(mat['pnets'][0,i][0,j].toarray().tolist())
-#         
-#         sample = ceil(j/step_size)
-#         
-#         #b = g.community_edge_betweenness(directed=True, weights=g.es["weight"])
-#         #n_betweeness.append(b.optimal_count)
-#         #q_betweeness.append(b.as_clustering().q)
-#         
-#         #w = g.community_walktrap(weights=g.es["weight"], steps=100)
-#         #n_walktrap.append(w.optimal_count)
-#         #q_walktrap.append(w.as_clustering().q)
-#         
-#         infomap = g.community_infomap(edge_weights=g.es["weight"])
-#         n_infomap[i,sample] = infomap.cluster_graph().vcount()
-#         q_infomap[i,sample] = infomap.q
-#         codelength[i, sample] = infomap.codelength
-# 
-#         mean_path_length[i,sample] = mean(g.shortest_paths(weights='weight'))
-#         mean_clustering[i,sample] = mean(g.transitivity_local_undirected(weights='weight'))
-#         
-#         betweeness_sequence = g.edge_betweenness(weights='weight')
-#         if last_betweeness==0:
-#             last_betweeness = betweeness_sequence
-#         else:
-#             betweeness_change[i,sample] = kendalltau(last_betweeness, betweeness_sequence)[0]
-#         
-#         rc_out[i,sample,:] = richclub.rich_club_coefficient(g, scores_name='out_strength', control = mat['pnets_spr_out'][i,j,:])
-#         rc_in[i,sample,:] = richclub.rich_club_coefficient(g, scores_name='in_strength', control = mat['pnets_spr_in'][i,j,:])
-#         rc_out_int[i,sample] = sum(rc_out[i,sample,:]-1)
-#         rc_in_int[i,sample] = sum(rc_in[i,sample,:]-1)
-#         
-#         
-#             
-#         if j in [0, 180, 480]:
-#             hist(g.es["weight"])
-#             savetxt('inrichclub_frame%i.txt'%j, rc_in[i,sample,:])
-#             savetxt('outrichclub_frame%i.txt'%j, rc_out[i,sample,:])
-#             
-#             figure()
-#             plot(rc_in[i,sample,:], 'b')
-#             plot(rc_out[i,sample,:], 'g')
-#             #show()
-#             savefig('richclub_frame%i.pdf'%j)
-#             
-#         #net = nx.DiGraph(mat['pnets'][0,i][0,j])
-#         #pos=nx.spring_layout(net)
-#         #figure()
-#         #title(str(i)+', '+str(z.as_clustering().q))
-#         #nx.draw(net,pos,node_size=node_size,alpha=alpha, width=width, with_labels=False)
-#         #show()
-#         
 
 # <codecell>
 

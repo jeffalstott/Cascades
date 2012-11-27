@@ -66,8 +66,8 @@ for i in range(n_nets):
     T_in.add_timeline(tl, CT_in)
 
 import pickle
-data = {"T_out": "T_out", "T_in": "T_in"}
-pickle.dump(data, open( "tl_"+filename[:-4]+".p", "wb" ) )
+data = {"T_out": T_out, "T_in": T_in}
+pickle.dump(data, open( data_directory+"tl_"+filename[:-4]+".p", "wb" ) )
         """%(data_directory, filename)
         swarm.add_job(jobstring)
 
