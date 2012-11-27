@@ -24,8 +24,12 @@ data_dir = "/data/alstottjd/Sini/"
 
 #mat = loadmat(data_dir+'test_NL_mlast_nruns70_pinc0.001_addinc0_mnwt7_mxwt5_cf99_R1000000_netprms:_60_ws_-0.0333333-4_1_5_ncorr.mat')
 #data_name='WSlast'
-mat = loadmat(data_dir+'test_NL_mlast_nruns70_pinc0.001_addinc0_mnwt7_mxwt5_cf99_R1000000_netprms:_60_oho_-6_1_5_ncorr.mat')
-data_name='OHOlast'
+#mat = loadmat(data_dir+'test_NL_mlast_nruns70_pinc0.001_addinc0_mnwt7_mxwt5_cf99_R1000000_netprms:_60_oho_-6_1_5_ncorr.mat')
+#data_name='OHOlast'
+#mat = loadmat(data_dir+'2,5_NL_mo-3_nruns70_pinc0.001_addinc0_mnwt7_mxwt5_cf99_R1000000_netprms:_60_oho_-6_1_5_ncorr.mat')
+#data_name = "2,5OHOF3"
+mat = loadmat(data_dir+'2,5_NL_mall_nruns70_pinc0.001_addinc0_mnwt7_mxwt5_cf99_R1000000_netprms:_60_ws_-0.0333333-4_1_5_ncorr.mat')
+data_name = "2,5WSall"
 
 # <codecell>
 
@@ -96,6 +100,7 @@ for i in range(n_nets):
         
             
         if j in [0, 180, 480]:
+            hist(g.es["weight"])
             savetxt('inrichclub_frame%i.txt'%j, rc_in[i,sample,:])
             savetxt('outrichclub_frame%i.txt'%j, rc_out[i,sample,:])
             
@@ -141,14 +146,27 @@ s1 = floor((r1/n_runs)*n_samples)
 s2 = floor((r2/n_runs)*n_samples)
 s3 = floor((r3/n_runs)*n_samples)
 
+alpha = .1
 
+xlims = (.1,.9)
 
 
 
 ax1 = f.add_subplot(131)
-ax1.plot(x_vals, rc_in[0,s1, :], label='In Strength', color='b')
-ax1.plot(x_vals, rc_out[0,s1,:], label='Out Strength', color='g')
-ax1.plot(xlim(), (1,1), 'k--')
+
+y_vals = mean(rc_in[:,s1,:], axis=0)
+error = std(rc_in[0,s1, :], axis=0)
+ax1.plot(x_vals, y_vals, label='In Strength', color='b')
+ax1.fill_between(x_vals, y_vals-error, y_vals+error, alpha=alpha, color='b')
+
+y_vals = mean(rc_out[:,s1,:], axis=0)
+error = std(rc_out[0,s1, :], axis=0)
+ax1.plot(x_vals, y_vals, label='Out Strength', color='g')
+ax1.fill_between(x_vals, y_vals-error, y_vals+error, alpha=alpha, color='g')
+
+ax1.set_xlim(xlims)
+
+ax1.plot(xlims, (1,1), 'k--')
 plt.setp(ax1.get_xticklabels(), visible=False)
 ylabel("Rich Club Coefficient")
 text(.5, .9, '0 Cascades', transform = ax1.transAxes, horizontalalignment='center', fontsize=10)
@@ -158,9 +176,18 @@ plt.xticks(x_vals[::2], x_vals[::2])
 #ax1.legend(handles, labels, loc=6)
 
 ax2 = f.add_subplot(132, sharey=ax1)
-ax2.plot(x_vals, rc_in[0,s2,:], label='In Strength', color='b')
-ax2.plot(x_vals, rc_out[0,s2,:], label='Out Strength', color='g')
-ax2.plot(xlim(), (1,1), 'k--')
+y_vals = mean(rc_in[:,s2,:], axis=0)
+error = std(rc_in[0,s2, :], axis=0)
+ax2.plot(x_vals, y_vals, label='In Strength', color='b')
+ax2.fill_between(x_vals, y_vals-error, y_vals+error, alpha=alpha, color='b')
+
+y_vals = mean(rc_out[:,s2,:], axis=0)
+error = std(rc_out[0,s2, :], axis=0)
+ax2.plot(x_vals, y_vals, label='Out Strength', color='g')
+ax2.fill_between(x_vals, y_vals-error, y_vals+error, alpha=alpha, color='g')
+
+ax2.set_xlim(xlims)
+ax2.plot(xlims, (1,1), 'k--')
 plt.setp(ax2.get_yticklabels(), visible=False)
 xlabel('Strength Decile')
 plt.xticks(x_vals[::2], (x_vals[::2]*100).astype(int))
@@ -169,9 +196,18 @@ text(.5, .9, '$%.1f*10^{6}$ Cascades'%c2, transform = ax2.transAxes, horizontala
 #ax.legend(handles, labels, loc=1)
 
 ax3 = f.add_subplot(133, sharey=ax1)
-ax3.plot(x_vals, rc_in[0,s3,:], label='In Strength', color='b')
-ax3.plot(x_vals, rc_out[0,s3,:], label='Out Strength', color='g')
-ax3.plot(xlim(), (1,1), 'k--')
+y_vals = mean(rc_in[:,s3,:], axis=0)
+error = std(rc_in[0,s3, :], axis=0)
+ax3.plot(x_vals, y_vals, label='In Strength', color='b')
+ax3.fill_between(x_vals, y_vals-error, y_vals+error, alpha=alpha, color='b')
+
+y_vals = mean(rc_out[:,s3,:], axis=0)
+error = std(rc_out[0,s3, :], axis=0)
+ax3.plot(x_vals, y_vals, label='Out Strength', color='g')
+ax3.fill_between(x_vals, y_vals-error, y_vals+error, alpha=alpha, color='g')
+
+ax3.set_xlim(xlims)
+ax3.plot(xlims, (1,1), 'k--')
 plt.setp(ax3.get_yticklabels(), visible=False)
 plt.setp(ax3.get_xticklabels(), visible=False)
 text(.5, .9, '$%.1f*10^{6}$ Cascades'%c3, transform = ax3.transAxes, horizontalalignment='center', fontsize=10)
@@ -180,6 +216,8 @@ plt.xticks(x_vals[::2], x_vals[::2])
 
 handles, labels = ax3.get_legend_handles_labels()
 ax3.legend(handles, labels, loc=5, fontsize=8)
+
+ax3.set_ylim(0,6)
 
 
 savefig(data_dir+data_name+'_'+'RichClubSamples.pdf', bbox_inches='tight')
@@ -211,6 +249,7 @@ inset_ax.plot(x_vals, y_vals)
 inset_ax.fill_between(x_vals, y_vals-error, y_vals+error, alpha=.5)
 ylabel("Modularity Index", fontsize=10)
 inset_ax.yaxis.set_major_locator(MultipleLocator(.1))
+
 
 
 savetxt(data_dir+data_name+'_'+'modules.txt', mean(n_infomap, axis=0))

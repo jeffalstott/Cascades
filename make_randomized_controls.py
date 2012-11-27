@@ -1,13 +1,13 @@
 from os import listdir
 from Helix import biowulf
 
-n_rewires = 2
+n_rewires = 10
 randomizations = ['in', 'out']
 n_iters = 5
 
 data_directory = '/data/alstottjd/Sini/'
 
-swarm = biowulf.Swarm()
+swarm = biowulf.Swarm(memory_requirement=72)
 
 files = listdir(data_directory)
 
