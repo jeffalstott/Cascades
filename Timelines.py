@@ -102,12 +102,6 @@ class Timeline:
         if self.last_betweeness is None:
             self.last_betweeness = betweeness_sequence
         else:
-
-            #print shape(self.last_betweeness)
-            #print shape(betweeness_sequence)
-
-            #kendalltau(self.last_betweeness, betweeness_sequence)
-
             self.betweeness_change_kendall.append(kendalltau(self.last_betweeness, betweeness_sequence)[0])
             self.betweeness_change_spearmanr.append(spearmanr(self.last_betweeness, betweeness_sequence)[0])
 
