@@ -99,10 +99,30 @@ class Timeline:
         self.betweeness_change_kendall = []
         self.betweeness_change_spearmanr = []
 
-        self.rc_out = []  # zeros([n_nets, n_runs, 9])
-        self.rc_in = []  # zeros([n_nets, n_runs, 9])
-        self.rc_out_int = []
-        self.rc_in_int = []
+        self.rc_itl_out = []
+        self.rc_itl_in = []
+        self.rc_iNl_out = []
+        self.rc_iNl_in = []
+        self.rc_iNpl_out = []
+        self.rc_iNpl_in = []
+        self.rc_iNpwml_out = []
+        self.rc_iNpwml_in = []
+        self.rc_itg_out = []
+        self.rc_itg_in = []
+        self.rc_iNg_out = []
+        self.rc_iNg_in = []
+        self.rc_iNpg_out = []
+        self.rc_iNpg_in = []
+        self.rc_iNpwmg_out = []
+        self.rc_iNpwmg_in = []
+        self.rc_clustering_out = []
+        self.rc_clustering_in = []
+        self.rc_n_infomap_out = []
+        self.rc_n_infomap_in = []
+        self.rc_q_infomap_out = []
+        self.rc_q_infomap_in = []
+        self.rc_codelength_out = []
+        self.rc_codelength_in = []
 
         self.last_betweeness = None
 
@@ -124,7 +144,7 @@ class Timeline:
 
         self.mean_path_length.append(mean(g.shortest_paths(weights='weight')))
         self.mean_clustering.append(
-                mean(g.transitivity_local_undirected(weights='weight')))
+                g.transitivity_avglocal_undirected(weights='weight'))
 
         betweeness_sequence = g.edge_betweenness(weights='weight')
 
@@ -136,14 +156,104 @@ class Timeline:
             self.betweeness_change_spearmanr.append(
                     spearmanr(self.last_betweeness, betweeness_sequence)[0])
 
-        self.rc_out.append(
+        self.rc_itl_out.append(
                 richclub.rich_club_coefficient(
-                    g, scores_name='out_strength', rewire=False))
-        self.rc_in.append(
+                    g, richness='out_strength',
+                    club_property='intensity_total_local'))
+        self.rc_itl_in.append(
                 richclub.rich_club_coefficient(
-                    g, scores_name='in_strength', rewire=False))
-        self.rc_out_int.append(sum(self.rc_out[-1] - 1))
-        self.rc_in_int.append(sum(self.rc_in[-1] - 1))
+                    g, richness='in_strength',
+                    club_property='intensity_total_local'))
+        self.rc_iNl_out.append(
+                richclub.rich_club_coefficient(
+                    g, richness='out_strength',
+                    club_property='intensity_topN_local'))
+        self.rc_iNl_in.append(
+                richclub.rich_club_coefficient(
+                    g, richness='in_strength',
+                    club_property='intensity_topN_local'))
+        self.rc_iNpl_out.append(
+                richclub.rich_club_coefficient(
+                    g, richness='out_strength',
+                    club_property='intensity_topNp_local'))
+        self.rc_iNpl_in.append(
+                richclub.rich_club_coefficient(
+                    g, richness='in_strength',
+                    club_property='intensity_topNp_local'))
+        self.rc_iNpwml_out.append(
+                richclub.rich_club_coefficient(
+                    g, richness='out_strength',
+                    club_property='intensity_topNpweightmax_local'))
+        self.rc_iNpwml_in.append(
+                richclub.rich_club_coefficient(
+                    g, richness='in_strength',
+                    club_property='intensity_topNpweightmax_local'))
+
+        self.rc_itg_out.append(
+                richclub.rich_club_coefficient(
+                    g, richness='out_strength',
+                    club_property='intensity_total_global'))
+        self.rc_itg_in.append(
+                richclub.rich_club_coefficient(
+                    g, richness='in_strength',
+                    club_property='intensity_total_global'))
+        self.rc_iNg_out.append(
+                richclub.rich_club_coefficient(
+                    g, richness='out_strength',
+                    club_property='intensity_topN_global'))
+        self.rc_iNg_in.append(
+                richclub.rich_club_coefficient(
+                    g, richness='in_strength',
+                    club_property='intensity_topN_global'))
+        self.rc_iNpg_out.append(
+                richclub.rich_club_coefficient(
+                    g, richness='out_strength',
+                    club_property='intensity_topNp_global'))
+        self.rc_iNpg_in.append(
+                richclub.rich_club_coefficient(
+                    g, richness='in_strength',
+                    club_property='intensity_topNp_global'))
+        self.rc_iNpwmg_out.append(
+                richclub.rich_club_coefficient(
+                    g, richness='out_strength',
+                    club_property='intensity_topNpweightmax_global'))
+        self.rc_iNpwmg_in.append(
+                richclub.rich_club_coefficient(
+                    g, richness='in_strength',
+                    club_property='intensity_topNpweightmax_global'))
+
+        self.rc_clustering_out.append(
+                richclub.rich_club_coefficient(
+                    g, richness='out_strength',
+                    club_property='clustering'))
+        self.rc_clustering_in.append(
+                richclub.rich_club_coefficient(
+                    g, richness='in_strength',
+                    club_property='clustering'))
+        self.rc_n_infomap_out.append(
+                richclub.rich_club_coefficient(
+                    g, richness='out_strength',
+                    club_property='n_infomap'))
+        self.rc_n_infomap_in.append(
+                richclub.rich_club_coefficient(
+                    g, richness='in_strength',
+                    club_property='n_infomap'))
+        self.rc_q_infomap_out.append(
+                richclub.rich_club_coefficient(
+                    g, richness='out_strength',
+                    club_property='q_infomap'))
+        self.rc_q_infomap_in.append(
+                richclub.rich_club_coefficient(
+                    g, richness='in_strength',
+                    club_property='q_infomap'))
+        self.rc_codelength_out.append(
+                richclub.rich_club_coefficient(
+                    g, richness='out_strength',
+                    club_property='codelength'))
+        self.rc_codelength_in.append(
+                richclub.rich_club_coefficient(
+                    g, richness='in_strength',
+                    club_property='codelength'))
 
     def close_gens(self):
         from numpy import asarray
@@ -158,3 +268,28 @@ class Timeline:
         self.rc_in = asarray(self.rc_in)
         self.rc_out_int = asarray(self.rc_out_int)
         self.rc_in_int = asarray(self.rc_in_int)
+
+        self.rc_itl_out = asarray(self.rc_itl_out)
+        self.rc_itl_in = asarray(self.rc_itl_in)
+        self.rc_iNl_out = asarray(self.rc_iNl_out)
+        self.rc_iNl_in = asarray(self.rc_iNl_in)
+        self.rc_iNpl_out = asarray(self.rc_iNpl_out)
+        self.rc_iNpl_in = asarray(self.rc_iNpl_in)
+        self.rc_iNpwml_out = asarray(self.rc_iNpwml_out)
+        self.rc_iNpwml_in = asarray(self.rc_iNpwml_in)
+        self.rc_itg_out = asarray(self.rc_itg_out)
+        self.rc_itg_in = asarray(self.rc_itg_in)
+        self.rc_iNg_out = asarray(self.rc_iNg_out)
+        self.rc_iNg_in = asarray(self.rc_iNg_in)
+        self.rc_iNpg_out = asarray(self.rc_iNpg_out)
+        self.rc_iNpg_in = asarray(self.rc_iNpg_in)
+        self.rc_iNpwmg_out = asarray(self.rc_iNpwmg_out)
+        self.rc_iNpwmg_in = asarray(self.rc_iNpwmg_in)
+        self.rc_clustering_out = asarray(self.rc_clustering_out)
+        self.rc_clustering_in = asarray(self.rc_clustering_in)
+        self.rc_n_infomap_out = asarray(self.rc_n_infomap_out)
+        self.rc_n_infomap_in = asarray(self.rc_n_infomap_in)
+        self.rc_q_infomap_out = asarray(self.rc_q_infomap_out)
+        self.rc_q_infomap_in = asarray(self.rc_q_infomap_in)
+        self.rc_codelength_out = asarray(self.rc_codelength_out)
+        self.rc_codelength_in = asarray(self.rc_codelength_in)
