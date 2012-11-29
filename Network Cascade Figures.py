@@ -77,7 +77,7 @@ step_size = 5
 close('all')
 x_vals = arange(0, n_runs+1, step_size)
 x_vals = 10.0*x_vals/n_runs
-alpha = .05
+alpha = .1
 
 # <codecell>
 
@@ -91,8 +91,8 @@ for i in datanames:
     fill_between(x_vals, y_vals-error, y_vals+error, alpha=alpha, color=data[i]['color'])
 
 handles, labels = ax.get_legend_handles_labels()
-#ax.legend(handles, labels, loc=1)
-ax.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
+leg = ax.legend(handles, labels, loc=4)
+leg.draw_frame(False)
 
 xlabel("Cascades (n x 10$^{6}$)")
 ylabel("Bits to Represent Network")
@@ -117,9 +117,10 @@ for i in datanames:
 ax.set_ylim(0,.701)
 xlabel("Cascades (n x 10$^{6}$)")
 ylabel("Modularity Index")
+
 handles, labels = ax.get_legend_handles_labels()
-#ax.legend(handles, labels, loc=1)
-ax.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
+leg = ax.legend(handles, labels, loc=1, ncol=2)
+leg.draw_frame(False)
 
 inset_ax = axes([0.58,0.2,0.3,0.3])
 for i in datanames:
@@ -183,7 +184,9 @@ ax2.plot(ax2.get_xlim(), (0,0), 'k')
 
 
 handles, labels = ax2.get_legend_handles_labels()
-ax.legend(handles, labels, bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
+leg = ax2.legend(handles, labels, loc=1)
+leg.draw_frame(False)
+
 savefig(data_directory+'RichClubInt.pdf', bbox_inches='tight')
 #title("Rich Club with Learning")
 
@@ -203,10 +206,12 @@ ax1 = f.add_subplot(121)
 ax2 = f.add_subplot(122, sharey=ax1, sharex=ax1)
 plt.setp(ax2.get_yticklabels(), visible=False)
 
-ax1.text(.5, .8, 'In Strength',
- transform = ax1.transAxes, horizontalalignment='center', fontsize=10)
-ax2.text(.5, .8, 'Out Strength',
- transform = ax2.transAxes, horizontalalignment='center', fontsize=10)
+#ax1.text(.5, .8, 'In Strength',
+# transform = ax1.transAxes, horizontalalignment='center', fontsize=10)
+#ax2.text(.5, .8, 'Out Strength',
+# transform = ax2.transAxes, horizontalalignment='center', fontsize=10)
+ax1.set_title("In Strength")
+ax2.set_title("Out Strength")
 
 ax1.set_xlim(x_vals[0], x_vals[-1])
 ax1.plot(ax1.get_xlim(), (0,0), 'k')
@@ -231,7 +236,9 @@ ax1.plot(ax1.get_xlim(), (0,0), 'k')
 ax2.plot(ax2.get_xlim(), (0,0), 'k')
 
 handles, labels = ax2.get_legend_handles_labels()
-ax.legend(handles, labels, bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
+leg = ax2.legend(handles, labels, loc=1)
+leg.draw_frame(False)
+
 savefig(data_directory+'RichClubInt.pdf', bbox_inches='tight')
 #title("Rich Club with Learning")
 
@@ -272,9 +279,9 @@ for i in datanames:
     ax3.plot(x_vals, y_vals, 
         label=data[i]['name'], color=data[i]['color'], linestyle=data[i]['line'])
 
-handles, labels = ax1.get_legend_handles_labels()
-#ax.legend(handles, labels, loc=1)
-ax.legend(handles, labels, bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
+handles, labels = ax3.get_legend_handles_labels()
+leg = ax3.legend(handles, labels, loc=1)
+leg.draw_frame(False)
 
 savefig(data_directory+'PathLengthClustering.pdf', bbox_inches='tight')
 
@@ -295,12 +302,21 @@ for i in datanames:
     #ax.fill_between(x_vals[1:], y_vals-error, y_vals+error, alpha=alpha, color=data[i]['color'])
     
 handles, labels = ax.get_legend_handles_labels()
-#ax.legend(handles, labels, loc=1)
-ax.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
+leg = ax.legend(handles, labels, loc=1, ncol=4, mode='expand')
+leg.draw_frame(False)
 
 ax.set_xlabel("Cascades (n x 10$^{6}$)")
 ax.set_ylabel("Correlation in Betweeness Centrality Rank Order")
 
 savefig(data_directory+'Rerouting.pdf', bbox_inches='tight')
 #title("Network Compression with Learning")
+
+# <codecell>
+
+
+# <codecell>
+
+
+# <codecell>
+
 
