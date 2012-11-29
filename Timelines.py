@@ -325,6 +325,14 @@ class Timeline:
         else:
            return richness_scores
 
+    @calculator
+    def calculate_diameter(g):
+        return  g.diameter(weights=g.es["weight"])
+
+    @calculator
+    def calculate_diameter_unweighted(g):
+        return  g.diameter()
+
 #    def calculate_in_out_strength_cross_correlation(graphs):
 #        n_nodes = len(graphs[0].vs)
 #        n_generations = len(graphs)
