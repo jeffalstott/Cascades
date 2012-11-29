@@ -1,7 +1,7 @@
 from os import listdir
 from Helix import biowulf
 
-n_rewires = 2
+n_rewires = 10
 n_iters = 5
 
 data_directory = '/data/alstottjd/Sini/'
@@ -26,42 +26,26 @@ mat = loadmat(data_directory+filename)
 n_nets = shape(mat['pnets'])[1]
 n_runs = shape(mat['pnets'][0,0])[1]
 n_controls = shape(mat['pnets_spr_out'][0,0])[0]
-step_size = 5
+step_size = 1
 n_samples = ceil(n_runs/step_size)
 
 T_out = Timelines()
 T_in = Timelines()
 for i in range(n_nets):
-    tl = Timeline()
-    CT_out = Timelines(with_control=False)
-    CT_in = Timelines(with_control=False)    
-    for j in arange(0,n_runs,step_size):
-        if floor(j%%100)==0:
-            print "Generation = %%i"%%j
+    tl = Timeline(mat['pnets'][0,i][0,::step_size].toarray().tolist())
+    tl.calculate()
 
-        tl.add_gen(mat['pnets'][0,i][0,j].toarray().tolist())
-        
-        if j==0:
-                c_out=[]
-                c_in=[]
-        for k in range(n_controls):
-            #print "k=%%i"%%k
-            if j==0:
-                c_out.append(Timeline())
-                c_in.append(Timeline())
-         
-            control_out = mat['pnets_spr_out'][i,j,k].toarray().tolist()
-            c_out[k].add_gen(control_out)
-            control_in = mat['pnets_spr_in'][i,j,k].toarray().tolist()
-            c_in[k].add_gen(control_in)
-            if j==n_runs-step_size:
-                c_out[k].close_gens()
-                c_in[k].close_gens()
-        
-        CT_out.add_timelines(c_out)
-        CT_in.add_timelines(c_in)
-    
-    tl.close_gens()
+    CT_out = Timelines(with_control=False)
+    CT_in = Timelines(with_control=False)
+    for k in range(n_controls):
+        co = Timeline(mat['pnets_spr_out'][i,::step_size,k].toarray().tolist()))
+        co.calculate()
+        CT_out.add_timeline(co)
+
+        ci = Timeline(mat['pnets_spr_in'][i,::step_size,k].toarray().tolist()))
+        ci.calculate()
+        CT_in.add_timeline(ci)
+
     T_out.add_timeline(tl, CT_out) 
     T_in.add_timeline(tl, CT_in)
 

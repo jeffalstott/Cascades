@@ -1,5 +1,4 @@
 from igraph import Graph
-from scipy.stats import kendalltau, spearmanr
 from numpy import mean, std, empty, shape
 import richclub
 
@@ -84,208 +83,250 @@ class Timelines:
 
 
 class Timeline:
-    def __init__(self):
-        self.q_betweeness = []
-        self.n_betweeness = []
-        self.q_walktrap = []
-        self.n_walktrap = []
-        self.q_infomap = []
-        self.n_infomap = []
-        self.codelength = []
+    def __init__(self, graphs):
+        self.graphs = self.convert_graphs(graphs)
+        self.n_graphs
 
-        self.mean_path_length = []
-        self.mean_clustering = []
+    def convert_graphs(self, graphs):
+        if type(graphs[0]) == list:
+            for g in range(len(graphs)):
+                graphs[g] = Graph.Weighted_Adjacency(g)
+        return graphs
 
-        self.betweeness_change_kendall = []
-        self.betweeness_change_spearmanr = []
+    def calculate(self, calculations=None):
+        if calculations==None or calculations=='all':
+            calculations = []
+            for i in dir(self):
+                if i.startswith('calculate_'):
+                    calculations.append(i)
 
-        self.rc_itl_out = []
-        self.rc_itl_in = []
-        self.rc_iNl_out = []
-        self.rc_iNl_in = []
-        self.rc_iNpl_out = []
-        self.rc_iNpl_in = []
-        self.rc_iNpwml_out = []
-        self.rc_iNpwml_in = []
-        self.rc_itg_out = []
-        self.rc_itg_in = []
-        self.rc_iNg_out = []
-        self.rc_iNg_in = []
-        self.rc_iNpg_out = []
-        self.rc_iNpg_in = []
-        self.rc_iNpwmg_out = []
-        self.rc_iNpwmg_in = []
-        self.rc_clustering_out = []
-        self.rc_clustering_in = []
-        self.rc_n_infomap_out = []
-        self.rc_n_infomap_in = []
-        self.rc_q_infomap_out = []
-        self.rc_q_infomap_in = []
-        self.rc_codelength_out = []
-        self.rc_codelength_in = []
+        for var in calculations:
+            if type(var)==tuple:
+                setattr(self, var[0], var[1](self.graphs))
+            elif var.startswith('calculate_'):
+                setattr(self, var[10:], getattr(self, var))
+            else:
+                setattr(self, var, getattr(self, "calculate_"+var))
 
-        self.last_betweeness = None
+    def calculator(self, fn):
+        from numpy import zeros
+        ans = zeros(self.n_graphs)
+        for i in range(self.n_graphs):
+            ans[i] = fn(self.graphs[i])
+        return ans
 
-    def add_gen(self, g):
-        if type(g) == list:
-            g = Graph.Weighted_Adjacency(g)
-        #b = g.community_edge_betweenness(directed=True, weights=g.es["weight"])
-        #n_betweeness.append(b.optimal_count)
-        #q_betweeness.append(b.as_clustering().q)
-
-        #w = g.community_walktrap(weights=g.es["weight"], steps=100)
-        #n_walktrap.append(w.optimal_count)
-        #q_walktrap.append(w.as_clustering().q)
-
+    @calculator
+    def calculate_n_infomap(g):
         infomap = g.community_infomap(edge_weights=g.es["weight"])
-        self.n_infomap.append(infomap.cluster_graph().vcount())
-        self.q_infomap.append(infomap.q)
-        self.codelength.append(infomap.codelength)
+        return infomap.cluster_graph().vcount()
 
-        self.mean_path_length.append(mean(g.shortest_paths(weights='weight')))
-        self.mean_clustering.append(
-                g.transitivity_avglocal_undirected(weights='weight'))
+    @calculator
+    def calculate_q_infomap(g):
+        infomap = g.community_infomap(edge_weights=g.es["weight"])
+        return infomap.q
 
+    @calculator
+    def calculate_codelength(g):
+        infomap = g.community_infomap(edge_weights=g.es["weight"])
+        return infomap.codelength
+
+    @calculator
+    def calculate_mean_path_length(g):
+        return mean(g.shortest_paths(weights='weight'))
+
+    @calculator
+    def calculate_mean_clustering(g):
+        return g.transitivity_avglocal_undirected(weights='weight')
+
+    @calculator
+    def calculate_mean_clustering(g):
+        return g.transitivity_avglocal_undirected(weights='weight')
+
+    @calculator
+    def calculate_rc_itl_out(g):
+        return richclub.rich_club_coefficient(
+            g, richness='out_strength',
+            club_property='intensity_total_local')
+    @calculator
+    def calculate_rc_itl_in(g):
+        return richclub.rich_club_coefficient(
+            g, richness='in_strength',
+            club_property='intensity_total_local')
+    @calculator
+    def calculate_rc_iNl_out(g):
+        return richclub.rich_club_coefficient(
+            g, richness='out_strength',
+            club_property='intensity_topN_local')
+    @calculator
+    def calculate_rc_iNl_in(g):
+        return richclub.rich_club_coefficient(
+            g, richness='in_strength',
+            club_property='intensity_topN_local')
+    @calculator
+    def calculate_rc_iNpl_out(g):
+        return richclub.rich_club_coefficient(
+            g, richness='out_strength',
+            club_property='intensity_topNp_local')
+    @calculator
+    def calculate_rc_iNpl_in(g):
+        return richclub.rich_club_coefficient(
+            g, richness='in_strength',
+            club_property='intensity_topNp_local')
+    @calculator
+    def calculate_rc_iNpwml_out(g):
+        return richclub.rich_club_coefficient(
+            g, richness='out_strength',
+            club_property='intensity_topNpweightmax_local')
+    @calculator
+    def calculate_rc_iNpwml_in(g):
+        return richclub.rich_club_coefficient(
+            g, richness='in_strength',
+            club_property='intensity_topNpweightmax_local')
+
+    @calculator
+    def calculate_rc_itg_out(g):
+        return richclub.rich_club_coefficient(
+            g, richness='out_strength',
+            club_property='intensity_total_global')
+    @calculator
+    def calculate_rc_itg_in(g):
+        return richclub.rich_club_coefficient(
+            g, richness='in_strength',
+            club_property='intensity_total_global')
+    @calculator
+    def calculate_rc_iNg_out(g):
+        return richclub.rich_club_coefficient(
+            g, richness='out_strength',
+            club_property='intensity_topN_global')
+    @calculator
+    def calculate_rc_iNg_in(g):
+        return richclub.rich_club_coefficient(
+            g, richness='in_strength',
+            club_property='intensity_topN_global')
+    @calculator
+    def calculate_rc_iNpg_out(g):
+        return richclub.rich_club_coefficient(
+            g, richness='out_strength',
+            club_property='intensity_topNp_global')
+    @calculator
+    def calculate_rc_iNpg_in(g):
+        return richclub.rich_club_coefficient(
+            g, richness='in_strength',
+            club_property='intensity_topNp_global')
+    @calculator
+    def calculate_rc_iNpwmg_out(g):
+        return richclub.rich_club_coefficient(
+            g, richness='out_strength',
+            club_property='intensity_topNpweightmax_global')
+    @calculator
+    def calculate_rc_iNpwmg_in(g):
+        return richclub.rich_club_coefficient(
+            g, richness='in_strength',
+            club_property='intensity_topNpweightmax_global')
+
+    @calculator
+    def calculate_rc_clustering_out(g):
+        return richclub.rich_club_coefficient(
+            g, richness='out_strength',
+            club_property='clustering')
+    @calculator
+    def calculate_rc_clustering_in(g):
+        return richclub.rich_club_coefficient(
+            g, richness='in_strength',
+            club_property='clustering')
+    @calculator
+    def calculate_rc_n_infomap_out(g):
+        return richclub.rich_club_coefficient(
+            g, richness='out_strength',
+            club_property='n_infomap')
+    @calculator
+    def calculate_rc_n_infomap_in(g):
+        return richclub.rich_club_coefficient(
+            g, richness='in_strength',
+            club_property='n_infomap')
+    @calculator
+    def calculate_rc_q_infomap_out(g):
+        return richclub.rich_club_coefficient(
+            g, richness='out_strength',
+            club_property='q_infomap')
+    @calculator
+    def calculate_rc_q_infomap_in(g):
+        return richclub.rich_club_coefficient(
+            g, richness='in_strength',
+            club_property='q_infomap')
+    @calculator
+    def calculate_rc_codelength_out(g):
+        return richclub.rich_club_coefficient(
+            g, richness='out_strength',
+            club_property='codelength')
+    @calculator
+    def calculate_rc_codelength_in(g):
+        return richclub.rich_club_coefficient(
+            g, richness='in_strength',
+            club_property='codelength')
+    @calculator
+    def calculate_rc_in_out_kendalltau(g):
+        from scipy.stats import kendalltau
+        return  kendalltau(richclub.richness_scores(g, richness='in_strength'),
+            richclub.richness_scores(g, richness='out_strength'))
+
+    def calculator_derivative(self, fn):
+        from numpy import zeros
+        ans = zeros(self.n_graphs)
+        last_value = None
+        for i in range(1, self.n_graphs):
+            if last_value is None:
+                last_value = fn(self.graphs[i])
+            else:
+                last_value, ans[i] = fn(self.graphs[i], last_value)
+        return ans
+
+    @calculator_derivative
+    def calculate_betweeness_change_kendall(g, last_value=None):
         betweeness_sequence = g.edge_betweenness(weights='weight')
-
-        if self.last_betweeness is None:
-            self.last_betweeness = betweeness_sequence
+        if last_value:
+           from scipy.stats import kendalltau
+           return betweeness_sequence, kendalltau(betweeness_sequence, last_value)[0]
         else:
-            self.betweeness_change_kendall.append(
-                    kendalltau(self.last_betweeness, betweeness_sequence)[0])
-            self.betweeness_change_spearmanr.append(
-                    spearmanr(self.last_betweeness, betweeness_sequence)[0])
+           return betweeness_sequence
 
-        self.rc_itl_out.append(
-                richclub.rich_club_coefficient(
-                    g, richness='out_strength',
-                    club_property='intensity_total_local'))
-        self.rc_itl_in.append(
-                richclub.rich_club_coefficient(
-                    g, richness='in_strength',
-                    club_property='intensity_total_local'))
-        self.rc_iNl_out.append(
-                richclub.rich_club_coefficient(
-                    g, richness='out_strength',
-                    club_property='intensity_topN_local'))
-        self.rc_iNl_in.append(
-                richclub.rich_club_coefficient(
-                    g, richness='in_strength',
-                    club_property='intensity_topN_local'))
-        self.rc_iNpl_out.append(
-                richclub.rich_club_coefficient(
-                    g, richness='out_strength',
-                    club_property='intensity_topNp_local'))
-        self.rc_iNpl_in.append(
-                richclub.rich_club_coefficient(
-                    g, richness='in_strength',
-                    club_property='intensity_topNp_local'))
-        self.rc_iNpwml_out.append(
-                richclub.rich_club_coefficient(
-                    g, richness='out_strength',
-                    club_property='intensity_topNpweightmax_local'))
-        self.rc_iNpwml_in.append(
-                richclub.rich_club_coefficient(
-                    g, richness='in_strength',
-                    club_property='intensity_topNpweightmax_local'))
+    @calculator_derivative
+    def calculate_betweeness_change_spearmanr(g, last_value=None):
+        betweeness_sequence = g.edge_betweenness(weights='weight')
+        if last_value:
+           from scipy.stats import spearmanr
+           return betweeness_sequence, spearmanr(betweeness_sequence, last_value)[0]
+        else:
+           return betweeness_sequence
 
-        self.rc_itg_out.append(
-                richclub.rich_club_coefficient(
-                    g, richness='out_strength',
-                    club_property='intensity_total_global'))
-        self.rc_itg_in.append(
-                richclub.rich_club_coefficient(
-                    g, richness='in_strength',
-                    club_property='intensity_total_global'))
-        self.rc_iNg_out.append(
-                richclub.rich_club_coefficient(
-                    g, richness='out_strength',
-                    club_property='intensity_topN_global'))
-        self.rc_iNg_in.append(
-                richclub.rich_club_coefficient(
-                    g, richness='in_strength',
-                    club_property='intensity_topN_global'))
-        self.rc_iNpg_out.append(
-                richclub.rich_club_coefficient(
-                    g, richness='out_strength',
-                    club_property='intensity_topNp_global'))
-        self.rc_iNpg_in.append(
-                richclub.rich_club_coefficient(
-                    g, richness='in_strength',
-                    club_property='intensity_topNp_global'))
-        self.rc_iNpwmg_out.append(
-                richclub.rich_club_coefficient(
-                    g, richness='out_strength',
-                    club_property='intensity_topNpweightmax_global'))
-        self.rc_iNpwmg_in.append(
-                richclub.rich_club_coefficient(
-                    g, richness='in_strength',
-                    club_property='intensity_topNpweightmax_global'))
+    @calculator_derivative
+    def calculate_richness_in_change(g, last_value=None):
+        richness_scores = richclub.richness_scores(g, richness='in_strength')
+        if last_value:
+           from scipy.stats import kendalltau
+           return richness_scores, kendalltau(richness_scores, last_value)[0]
+        else:
+           return richness_scores
 
-        self.rc_clustering_out.append(
-                richclub.rich_club_coefficient(
-                    g, richness='out_strength',
-                    club_property='clustering'))
-        self.rc_clustering_in.append(
-                richclub.rich_club_coefficient(
-                    g, richness='in_strength',
-                    club_property='clustering'))
-        self.rc_n_infomap_out.append(
-                richclub.rich_club_coefficient(
-                    g, richness='out_strength',
-                    club_property='n_infomap'))
-        self.rc_n_infomap_in.append(
-                richclub.rich_club_coefficient(
-                    g, richness='in_strength',
-                    club_property='n_infomap'))
-        self.rc_q_infomap_out.append(
-                richclub.rich_club_coefficient(
-                    g, richness='out_strength',
-                    club_property='q_infomap'))
-        self.rc_q_infomap_in.append(
-                richclub.rich_club_coefficient(
-                    g, richness='in_strength',
-                    club_property='q_infomap'))
-        self.rc_codelength_out.append(
-                richclub.rich_club_coefficient(
-                    g, richness='out_strength',
-                    club_property='codelength'))
-        self.rc_codelength_in.append(
-                richclub.rich_club_coefficient(
-                    g, richness='in_strength',
-                    club_property='codelength'))
+    @calculator_derivative
+    def calculate_richness_out_change(g, last_value=None):
+        richness_scores = richclub.richness_scores(g, richness='out_strength')
+        if last_value:
+           from scipy.stats import kendalltau
+           return richness_scores, kendalltau(richness_scores, last_value)[0]
+        else:
+           return richness_scores
 
-    def close_gens(self):
-        from numpy import asarray
-        self.n_infomap = asarray(self.n_infomap)
-        self.q_infomap = asarray(self.q_infomap)
-        self.codelength = asarray(self.codelength)
-        self.mean_path_length = asarray(self.mean_path_length)
-        self.mean_clustering = asarray(self.mean_clustering)
-        self.betweeness_change_kendall = asarray(self.betweeness_change_kendall)
-        self.betweeness_change_spearmanr = asarray(self.betweeness_change_spearmanr)
-
-        self.rc_itl_out = asarray(self.rc_itl_out)
-        self.rc_itl_in = asarray(self.rc_itl_in)
-        self.rc_iNl_out = asarray(self.rc_iNl_out)
-        self.rc_iNl_in = asarray(self.rc_iNl_in)
-        self.rc_iNpl_out = asarray(self.rc_iNpl_out)
-        self.rc_iNpl_in = asarray(self.rc_iNpl_in)
-        self.rc_iNpwml_out = asarray(self.rc_iNpwml_out)
-        self.rc_iNpwml_in = asarray(self.rc_iNpwml_in)
-        self.rc_itg_out = asarray(self.rc_itg_out)
-        self.rc_itg_in = asarray(self.rc_itg_in)
-        self.rc_iNg_out = asarray(self.rc_iNg_out)
-        self.rc_iNg_in = asarray(self.rc_iNg_in)
-        self.rc_iNpg_out = asarray(self.rc_iNpg_out)
-        self.rc_iNpg_in = asarray(self.rc_iNpg_in)
-        self.rc_iNpwmg_out = asarray(self.rc_iNpwmg_out)
-        self.rc_iNpwmg_in = asarray(self.rc_iNpwmg_in)
-        self.rc_clustering_out = asarray(self.rc_clustering_out)
-        self.rc_clustering_in = asarray(self.rc_clustering_in)
-        self.rc_n_infomap_out = asarray(self.rc_n_infomap_out)
-        self.rc_n_infomap_in = asarray(self.rc_n_infomap_in)
-        self.rc_q_infomap_out = asarray(self.rc_q_infomap_out)
-        self.rc_q_infomap_in = asarray(self.rc_q_infomap_in)
-        self.rc_codelength_out = asarray(self.rc_codelength_out)
-        self.rc_codelength_in = asarray(self.rc_codelength_in)
+#    def calculate_in_out_strength_cross_correlation(graphs):
+#        n_nodes = len(graphs[0].vs)
+#        n_generations = len(graphs)
+#        from numpy import zeros
+#        in_strengths = zeros(n_nodes*n_generations)
+#        out_strengths = zeros(n_nodes*n_generations)
+#
+#        for i in range(n_generations):
+#            g = graphs[i]
+#            s = g.strength(g.vs, mode=2, weights=g.es["weight"])
+#            in_strengths[(i*n_nodes):(n_nodes*(i+1))] =s
+#            s = g.strength(g.vs, mode=1, weights=g.es["weight"])
+#            out_strengths[(i*n_nodes):(n_nodes*(i+1))] =s
