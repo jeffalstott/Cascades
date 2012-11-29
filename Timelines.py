@@ -264,10 +264,6 @@ class Timeline:
         self.mean_clustering = asarray(self.mean_clustering)
         self.betweeness_change_kendall = asarray(self.betweeness_change_kendall)
         self.betweeness_change_spearmanr = asarray(self.betweeness_change_spearmanr)
-        self.rc_out = asarray(self.rc_out)
-        self.rc_in = asarray(self.rc_in)
-        self.rc_out_int = asarray(self.rc_out_int)
-        self.rc_in_int = asarray(self.rc_in_int)
 
         self.rc_itl_out = asarray(self.rc_itl_out)
         self.rc_itl_in = asarray(self.rc_itl_in)
