@@ -32,17 +32,17 @@ n_samples = ceil(n_runs/step_size)
 T_out = Timelines()
 T_in = Timelines()
 for i in range(n_nets):
-    tl = Timeline(mat['pnets'][0,i][0,::step_size].toarray().tolist())
+    tl = Timeline(mat['pnets'][0,i][0,::step_size])
     tl.calculate()
 
     CT_out = Timelines(with_control=False)
     CT_in = Timelines(with_control=False)
     for k in range(n_controls):
-        co = Timeline(mat['pnets_spr_out'][i,::step_size,k].toarray().tolist()))
+        co = Timeline(mat['pnets_spr_out'][i,::step_size,k])
         co.calculate()
         CT_out.add_timeline(co)
 
-        ci = Timeline(mat['pnets_spr_in'][i,::step_size,k].toarray().tolist()))
+        ci = Timeline(mat['pnets_spr_in'][i,::step_size,k])
         ci.calculate()
         CT_in.add_timeline(ci)
 

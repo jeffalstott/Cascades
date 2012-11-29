@@ -85,13 +85,20 @@ class Timelines:
 class Timeline:
     def __init__(self, graphs):
         self.graphs = self.convert_graphs(graphs)
-        self.n_graphs
+        self.n_graphs = len(graphs)
 
     def convert_graphs(self, graphs):
-        if type(graphs[0]) == list:
+        ans = []
+        from scipy.sparse import csc
+        from numpy import asarray
+        if type(graphs[0]) == csc.csc_matrix:
             for g in range(len(graphs)):
-                graphs[g] = Graph.Weighted_Adjacency(g)
-        return graphs
+                ans.append(
+                        Graph.Weighted_Adjacency(graphs[g].toarray().tolist()))
+        elif type(graphs[0]) == list:
+            for g in range(len(graphs)):
+                ans.append(Graph.Weighted_Adjacency(graphs[g]))
+        return asarray(ans)
 
     def calculate(self, calculations=None):
         if calculations==None or calculations=='all':
@@ -101,19 +108,22 @@ class Timeline:
                     calculations.append(i)
 
         for var in calculations:
+            print("Calculating "+var)
             if type(var)==tuple:
                 setattr(self, var[0], var[1](self.graphs))
             elif var.startswith('calculate_'):
-                setattr(self, var[10:], getattr(self, var))
+                setattr(self, var[10:], getattr(self, var)())
             else:
-                setattr(self, var, getattr(self, "calculate_"+var))
+                setattr(self, var, getattr(self, "calculate_"+var)())
 
-    def calculator(self, fn):
-        from numpy import zeros
-        ans = zeros(self.n_graphs)
-        for i in range(self.n_graphs):
-            ans[i] = fn(self.graphs[i])
-        return ans
+    def calculator(fn):
+        def magic(self):
+            from numpy import asarray
+            ans = []
+            for i in self.graphs:
+                ans.append(fn(i))
+            return asarray(ans)
+        return magic
 
     @calculator
     def calculate_n_infomap(g):
@@ -133,10 +143,6 @@ class Timeline:
     @calculator
     def calculate_mean_path_length(g):
         return mean(g.shortest_paths(weights='weight'))
-
-    @calculator
-    def calculate_mean_clustering(g):
-        return g.transitivity_avglocal_undirected(weights='weight')
 
     @calculator
     def calculate_mean_clustering(g):
@@ -270,16 +276,18 @@ class Timeline:
         return  kendalltau(richclub.richness_scores(g, richness='in_strength'),
             richclub.richness_scores(g, richness='out_strength'))
 
-    def calculator_derivative(self, fn):
-        from numpy import zeros
-        ans = zeros(self.n_graphs)
-        last_value = None
-        for i in range(1, self.n_graphs):
-            if last_value is None:
-                last_value = fn(self.graphs[i])
-            else:
-                last_value, ans[i] = fn(self.graphs[i], last_value)
-        return ans
+    def calculator_derivative(fn):
+        def magic(self):
+            from numpy import zeros
+            ans = zeros(self.n_graphs)
+            last_value = None
+            for i in range(1, self.n_graphs):
+                if last_value is None:
+                    last_value = fn(self.graphs[i])
+                else:
+                    last_value, ans[i] = fn(self.graphs[i], last_value)
+            return ans
+        return magic
 
     @calculator_derivative
     def calculate_betweeness_change_kendall(g, last_value=None):
