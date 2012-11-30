@@ -26,7 +26,7 @@ mat = loadmat(data_directory+filename)
 n_nets = shape(mat['pnets'])[1]
 n_runs = shape(mat['pnets'][0,0])[1]
 n_controls = shape(mat['pnets_spr_out'][0,0])[0]
-step_size = 1
+step_size = 5
 n_samples = ceil(n_runs/step_size)
 
 T_out = Timelines()
