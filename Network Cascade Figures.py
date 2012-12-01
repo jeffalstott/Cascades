@@ -20,8 +20,9 @@ files = listdir(data_directory)
 
 # <codecell>
 
-n_rewires = 2
+n_rewires = 10
 n_iters = 5
+network_type = 'oho'
 
 # <codecell>
 
@@ -31,10 +32,10 @@ datanames = [#'mlast',
  #'mL3',
  #'mL4',
  #'mL5',
- 'mall',
- 'mlast',
- 'mo-2',
  'mo-1',
+ 'mall',
+ 'mo-2',
+ 'mlast'
  #'mo-2',
  #'mo-3',
  #'mo-4',
@@ -67,7 +68,8 @@ data = {
 for filename in files:
     if filename.startswith('tl_'+str(n_rewires)+','+str(n_iters)):
         dataname = filename.split('_')[3]
-        if dataname in datanames:
+        if network_type in filename and dataname in datanames:
+            print dataname
             data[dataname]['data'] = pickle.load( open( data_directory+filename, "rb" ))
 
 # <codecell>
@@ -92,11 +94,13 @@ for i in datanames:
 
 handles, labels = ax.get_legend_handles_labels()
 leg = ax.legend(handles, labels, loc=4)
-leg.draw_frame(False)
+leg.get_frame().set_alpha(0) 
+
 
 xlabel("Cascades (n x 10$^{6}$)")
 ylabel("Bits to Represent Network")
 
+f.tight_layout()
 savefig(data_directory+'Compression.pdf', bbox_inches='tight')
 #title("Network Compression with Learning")
 
@@ -115,14 +119,16 @@ for i in datanames:
     fill_between(x_vals, y_vals-error, y_vals+error, alpha=alpha, color=data[i]['color'])
 
 ax.set_ylim(0,.701)
-xlabel("Cascades (n x 10$^{6}$)")
-ylabel("Modularity Index")
+ax.set_xlabel("Cascades (n x 10$^{6}$)")
+ax.set_ylabel("Modularity Index")
+
+
 
 handles, labels = ax.get_legend_handles_labels()
 leg = ax.legend(handles, labels, loc=1, ncol=2)
-leg.draw_frame(False)
+leg.get_frame().set_alpha(0) 
 
-inset_ax = axes([0.58,0.2,0.3,0.3])
+inset_ax = axes([0.62,0.22,0.3,0.3])
 for i in datanames:
     y_vals, error = data[i]['data']["T_out"].data("n_infomap")
     inset_ax.plot(x_vals, y_vals, 
@@ -131,6 +137,7 @@ for i in datanames:
 ylabel("Number of Modules", fontsize=10)
 #inset_ax.yaxis.set_major_locator(MultipleLocator(.1))
 
+f.tight_layout()
 
 savefig(data_directory+'Modularity.pdf', bbox_inches='tight')
 #title("Modularity with Learning")
@@ -185,7 +192,9 @@ ax2.plot(ax2.get_xlim(), (0,0), 'k')
 
 handles, labels = ax2.get_legend_handles_labels()
 leg = ax2.legend(handles, labels, loc=1)
-leg.draw_frame(False)
+leg.get_frame().set_alpha(0) 
+
+f.tight_layout()
 
 savefig(data_directory+'RichClubInt.pdf', bbox_inches='tight')
 #title("Rich Club with Learning")
@@ -237,7 +246,9 @@ ax2.plot(ax2.get_xlim(), (0,0), 'k')
 
 handles, labels = ax2.get_legend_handles_labels()
 leg = ax2.legend(handles, labels, loc=1)
-leg.draw_frame(False)
+leg.get_frame().set_alpha(0) 
+
+f.tight_layout()
 
 savefig(data_directory+'RichClubInt.pdf', bbox_inches='tight')
 #title("Rich Club with Learning")
@@ -281,7 +292,9 @@ for i in datanames:
 
 handles, labels = ax3.get_legend_handles_labels()
 leg = ax3.legend(handles, labels, loc=1)
-leg.draw_frame(False)
+leg.get_frame().set_alpha(0) 
+
+f.tight_layout()
 
 savefig(data_directory+'PathLengthClustering.pdf', bbox_inches='tight')
 
@@ -292,30 +305,27 @@ ax = f.add_subplot(111)
 
 for i in datanames:
     y_vals, error = data[i]['data']["T_out"].data("betweeness_change_kendall")
-    ax.plot(x_vals[1:], y_vals, 
+    ax.plot(x_vals, y_vals, 
         label=data[i]['name'], color=data[i]['color'], linestyle=data[i]['line'])
-    ax.fill_between(x_vals[1:], y_vals-error, y_vals+error, alpha=alpha, color=data[i]['color'])
+    ax.fill_between(x_vals, y_vals-error, y_vals+error, alpha=alpha, color=data[i]['color'])
 
     y_vals, error = data[i]['data']["T_out"].control("betweeness_change_kendall")
-    ax.plot(x_vals[1:], y_vals, color=data[i]['color'], linestyle=data[i]['line']+'.')
+    ax.plot(x_vals, y_vals, color=data[i]['color'], linestyle=data[i]['line']+'.')
 #        label=data[i]['name'], 
     #ax.fill_between(x_vals[1:], y_vals-error, y_vals+error, alpha=alpha, color=data[i]['color'])
-    
+
+ax.set_ylim(ax.get_ylim()[0], 1.01)
 handles, labels = ax.get_legend_handles_labels()
-leg = ax.legend(handles, labels, loc=1, ncol=4, mode='expand')
-leg.draw_frame(False)
+leg = ax.legend(handles, labels, loc=3, ncol=4, mode='expand')
+leg.get_frame().set_alpha(0) 
 
 ax.set_xlabel("Cascades (n x 10$^{6}$)")
 ax.set_ylabel("Correlation in Betweeness Centrality Rank Order")
 
+f.tight_layout()
+
 savefig(data_directory+'Rerouting.pdf', bbox_inches='tight')
 #title("Network Compression with Learning")
-
-# <codecell>
-
-
-# <codecell>
-
 
 # <codecell>
 
