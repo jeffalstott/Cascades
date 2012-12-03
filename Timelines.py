@@ -86,6 +86,8 @@ class Timeline:
     def __init__(self, graphs):
         self.graphs = self.convert_graphs(graphs)
         self.n_graphs = len(graphs)
+        self.calculations = []
+
 
     def convert_graphs(self, graphs):
         ans = []
@@ -102,12 +104,11 @@ class Timeline:
 
     def calculate(self, calculations=None):
         if calculations==None or calculations=='all':
-            self.calculations = []
             for i in dir(self):
                 if i.startswith('calculate_'):
                     self.calculations.append(i[10:])
         else:
-            self.calculations = calculations
+            self.calculations.append(calculations)
 
         for var in self.calculations:
             print("Calculating "+var)
@@ -136,8 +137,8 @@ class Timeline:
         return magic
 
     @calculator
-    def calculate_mincut(g):
-        return g.mincut(capacity=g.es["weight"])
+    def calculate_mincut_value(g):
+        return g.mincut_value(capacity=g.es["weight"])
 
     @calculator
     def calculate_n_infomap(g):
