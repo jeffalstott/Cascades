@@ -102,12 +102,14 @@ class Timeline:
 
     def calculate(self, calculations=None):
         if calculations==None or calculations=='all':
-            calculations = []
+            self.calculations = []
             for i in dir(self):
                 if i.startswith('calculate_'):
-                    calculations.append(i)
+                    self.calculations.append(i[10:])
+        else:
+            self.calculations = calculations
 
-        for var in calculations:
+        for var in self.calculations:
             print("Calculating "+var)
             if type(var)==tuple:
                 setattr(self, var[0], var[1](self.graphs))
@@ -115,6 +117,14 @@ class Timeline:
                 setattr(self, var[10:], getattr(self, var)())
             else:
                 setattr(self, var, getattr(self, "calculate_"+var)())
+
+    def save_to_mat(self, filename):
+        from scipy.io import savemat
+        data = {}
+        for var in self.calculations:
+            data[var] = getattr(self, var)
+
+        savemat(filename, data)
 
     def calculator(fn):
         def magic(self):
@@ -124,6 +134,10 @@ class Timeline:
                 ans.append(fn(i))
             return asarray(ans)
         return magic
+
+    @calculator
+    def calculate_mincut(g):
+        return g.mincut(capacity=g.es["weight"])
 
     @calculator
     def calculate_n_infomap(g):
@@ -275,6 +289,28 @@ class Timeline:
         from scipy.stats import kendalltau
         return  kendalltau(richclub.richness_scores(g, richness='in_strength'),
             richclub.richness_scores(g, richness='out_strength'))
+
+    def calculator_from_first(fn):
+        def magic(self):
+            from numpy import zeros
+            ans = zeros(self.n_graphs)
+            first_value = None
+            for i in range(1, self.n_graphs):
+                if first_value is None:
+                    first_value = fn(self.graphs[i])
+                else:
+                    ans[i] = fn(self.graphs[i], first_value)
+            return ans
+        return magic
+
+    @calculator_from_first
+    def calculate_betweeness_change_from_first(g, first_value=None):
+        betweeness_sequence = g.edge_betweenness(weights='weight')
+        if first_value:
+           from scipy.stats import kendalltau
+           return kendalltau(betweeness_sequence, first_value)[0]
+        else:
+           return betweeness_sequence
 
     def calculator_derivative(fn):
         def magic(self):
