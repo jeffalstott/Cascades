@@ -86,7 +86,7 @@ class Timeline:
     def __init__(self, graphs):
         self.graphs = self.convert_graphs(graphs)
         self.n_graphs = len(graphs)
-        self.calculations = []
+        self.all_calculations = []
 
 
     def convert_graphs(self, graphs):
@@ -104,13 +104,12 @@ class Timeline:
 
     def calculate(self, calculations=None):
         if calculations==None or calculations=='all':
+            calculations = []
             for i in dir(self):
                 if i.startswith('calculate_'):
-                    self.calculations.append(i[10:])
-        else:
-            self.calculations.append(calculations)
+                    calculations.append(i[10:])
 
-        for var in self.calculations:
+        for var in calculations:
             print("Calculating "+var)
             if type(var)==tuple:
                 setattr(self, var[0], var[1](self.graphs))
@@ -119,10 +118,13 @@ class Timeline:
             else:
                 setattr(self, var, getattr(self, "calculate_"+var)())
 
+            if var not in self.all_calculations:
+                self.all_calculations.append(var)
+
     def save_to_mat(self, filename):
         from scipy.io import savemat
         data = {}
-        for var in self.calculations:
+        for var in self.all_calculations:
             data[var] = getattr(self, var)
 
         savemat(filename, data)
