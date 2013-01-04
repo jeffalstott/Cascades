@@ -4,8 +4,8 @@ from Helix import biowulf
 n_rewires = 10
 n_iters = 5
 
-data_directory = '/data/alstottjd/Sini/'
-
+data_directory = '/data/alstottjd/Cascade/Controlled_Data/'
+output_directory = '/data/alstottjd/Cascade/Timelines/'
 swarm = biowulf.Swarm(memory_requirement=16)
 
 files = listdir(data_directory)
@@ -24,6 +24,7 @@ sys.path.append('/home/alstottjd/Code/Cascade/')
 from scipy.io import loadmat
 from Timelines import Timelines, Timeline
 data_directory = %r
+output_directory = %r
 filename = %r
 mat = loadmat(data_directory+filename)
 n_nets = shape(mat['pnets'])[1]
@@ -54,8 +55,8 @@ for i in range(n_nets):
 
 import pickle
 data = {"T_out": T_out, "T_in": T_in}
-pickle.dump(data, open( data_directory+"tl_"+filename[:-4]+".p", "wb" ) )
-        """%(data_directory, filename)
+pickle.dump(data, open( output_directory+"tl_"+filename[:-4]+".p", "wb" ) )
+        """%(data_directory, output_directory, filename)
         swarm.add_job(jobstring)
 
 swarm.submit()
