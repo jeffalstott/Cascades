@@ -5,7 +5,8 @@ n_rewires = 10
 randomizations = ['in', 'out']
 n_iters = 5
 
-data_directory = '/data/alstottjd/Sini/'
+data_directory = '/data/alstottjd/Sini/Original/'
+output_directory = '/data/alstottjd/Cascade/Controlled_Data/'
 
 swarm = biowulf.Swarm(memory_requirement=72)
 
@@ -15,6 +16,7 @@ for filename in files:
     if filename.startswith('NL_m') and '_60_' in filename and str(n_rewires)+','+str(n_iters)+'_'+filename not in files:
         print filename
         jobstring = """data_directory = %r
+output_directory = %r
 filename = %r
 print filename
 n_rewires = %i
@@ -39,8 +41,8 @@ for randomization in randomizations:
             for k in range(n_iters):
                 random_graph = richclub.directed_spr(g, n_rewires=n_rewires, preserve=randomization)
                 mat['pnets_spr_'+randomization][i, j, k] = csc_matrix(random_graph.get_adjacency(attribute='weight').data)
-savemat(data_directory+str(n_rewires)+','+str(n_iters)+'_'+filename, mat)
-        """%(data_directory, filename, n_rewires, n_iters)
+savemat(output_directory+str(n_rewires)+','+str(n_iters)+'_'+filename, mat)
+        """%(data_directory, output_directory, filename, n_rewires, n_iters)
         swarm.add_job(jobstring)
 
 swarm.submit()
