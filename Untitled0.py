@@ -37,6 +37,7 @@ alpha = .1
 
 # <codecell>
 
+output_directory = '/data/alstottjd/Cascade/'
 figures = []
 
 # <codecell>
@@ -117,21 +118,40 @@ close('all')
 f = figure(figsize=(11,8))
 gs = gridspec.GridSpec(2, 2)
 gs.update(hspace=0.1, wspace=0.2)
-alpha = .2
+alpha = 1
+
+clustering_sequence = initial_graph.transitivity_local_undirected()
+from matplotlib.cm import get_cmap
+cmap = get_cmap('spectral')
+colors = [cmap(i) for i in clustering_sequence]
+coloring_sequence = array(clustering_sequence)
+from matplotlib.collections import LineCollection
+from matplotlib.colors import NoNorm
+norm=None
+
 
 dynamical_degree_plot = f.add_subplot(gs[0])
 dynamical_degree_plot.annotate("A", (0,0.95), xycoords=(dynamical_degree_plot.get_yaxis().get_label(), "axes fraction"), fontsize=14)
-for i in range(n_nodes):
-    dynamical_degree_plot.plot(x_vals, node_dynamical_degree[:,i], alpha=alpha)
-dynamical_degree_plot.plot(x_vals, system_dynamical_degree, color='k', linewidth=3)
 
+segs = list(zip(x_vals, node_dynamical_degree[:,i]) for i in range(n_nodes))
+line_segments = LineCollection(segs), cmap=cmap, norm=norm)
+line_segments.set_array(coloring_sequence)
+dynamical_degree_plot.add_collection(line_segments)
+
+#for i in range(n_nodes):
+#    dynamical_degree_plot.plot(x_vals, node_dynamical_degree[:,i], alpha=alpha, color=cmap(clustering_sequence[i]))
 dynamical_degree_plot.set_ylabel('Dynamic Degree')
 for i in dynamical_degree_plot.get_xticklabels():
     i.set_visible(False)
     
 dynamical_degree_norm_plot = f.add_subplot(gs[1])
-for i in range(n_nodes):
-    dynamical_degree_norm_plot.plot(x_vals, node_dynamical_degree[:,i]/float(degree_sequence[i]), alpha=alpha)
+segs = list(zip(x_vals, node_dynamical_degree[:,i]/float(degree_sequence[i])) for i in range(n_nodes))
+line_segments = LineCollection(segs, cmap=cmap, norm=norm)
+line_segments.set_array(coloring_sequence)
+dynamical_degree_norm_plot.add_collection(line_segments)
+
+#for i in range(n_nodes):
+#    dynamical_degree_norm_plot.plot(x_vals, node_dynamical_degree[:,i]/float(degree_sequence[i]), alpha=alpha, color=cmap(clustering_sequence[i]))
 dynamical_degree_norm_plot.plot(x_vals, system_dynamical_degree_norm, color='k', linewidth=3)
 
 dynamical_degree_norm_plot.set_ylabel('Dynamic Degree, Normalized')
@@ -141,8 +161,13 @@ for i in dynamical_degree_norm_plot.get_xticklabels():
     
 
 dynamical_strength_plot = f.add_subplot(gs[2], sharex=dynamical_degree_plot)
-for i in range(n_nodes):
-    dynamical_strength_plot.plot(x_vals, node_dynamical_out_strength[:,i], alpha=alpha)
+segs = list(zip(x_vals, node_dynamical_out_strength[:,i]) for i in range(n_nodes))
+line_segments = LineCollection(segs, cmap=cmap, norm=norm)
+line_segments.set_array(coloring_sequence)
+dynamical_strength_plot.add_collection(line_segments)
+
+#for i in range(n_nodes):
+#    dynamical_strength_plot.plot(x_vals, node_dynamical_out_strength[:,i], alpha=alpha, color=cmap(clustering_sequence[i]))
 dynamical_strength_plot.plot(x_vals, system_dynamical_out_strength, color='k', linewidth=3)
 dynamical_strength_plot.set_ylabel('Dynamic Out Strength')
 dynamical_strength_plot.set_xlabel("Cascades (n x 10$^{6}$)")
@@ -150,12 +175,19 @@ dynamical_strength_plot.set_xlabel("Cascades (n x 10$^{6}$)")
 dynamical_strength_plot.annotate("B", (0,0.95), xycoords=(dynamical_strength_plot.get_yaxis().get_label(), "axes fraction"), fontsize=14)
 
 dynamical_strength_norm_plot = f.add_subplot(gs[3], sharex=dynamical_degree_norm_plot)
-for i in range(n_nodes):
-    dynamical_strength_norm_plot.plot(x_vals, node_dynamical_out_strength[:,i]/node_out_strength[:,i], alpha=alpha)
+segs = list(zip(x_vals, node_dynamical_out_strength[:,i]/node_out_strength[:,i]) for i in range(n_nodes))
+line_segments = LineCollection(segs, cmap=cmap, norm=norm)
+line_segments.set_array(coloring_sequence)
+dynamical_strength_norm_plot.add_collection(line_segments)
+#for i in range(n_nodes):
+#    dynamical_strength_norm_plot.plot(x_vals, node_dynamical_out_strength[:,i]/node_out_strength[:,i], alpha=alpha, color=cmap(clustering_sequence[i]))
 dynamical_strength_norm_plot.plot(x_vals, system_dynamical_out_strength_norm, color='k', linewidth=3)
 dynamical_strength_norm_plot.set_ylabel('Dynamic Out Strength, Normalized')
 dynamical_strength_norm_plot.set_xlabel("Cascades (n x 10$^{6}$)")
 
+
+
+#savefig(output_directory+'DynamicDegreeStrength'+".pdf", bbox_inches='tight')
 figures.append(f)
 
 # <codecell>
@@ -167,7 +199,8 @@ gs.update(hspace=0.1, wspace=0.3)
 alpha = .1
 
 #####
-initial_graph = Graph.Weighted_Adjacency(nets['pnets'][0,4][0,0].toarray().tolist())
+replicate = 4
+initial_graph = Graph.Weighted_Adjacency(nets['pnets'][0,replicate][0,0].toarray().tolist())
 n_nodes = len(initial_graph.vs)
 d = asarray(initial_graph.degree(mode=1))
 cc = asarray(initial_graph.transitivity_local_undirected())
@@ -286,6 +319,7 @@ cc_d_corr_plot_sample.set_yticks([0, .5, 1.0])
 
 #####
 f.show()
+savefig(output_directory+'TerminationCorrelation'+".pdf", bbox_inches='tight')
 figures.append(f)
 
 # <codecell>
