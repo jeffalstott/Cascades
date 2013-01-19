@@ -116,8 +116,8 @@ for sample in range(n_samples):
 #####
 close('all')
 f = figure(figsize=(11,8))
-gs = gridspec.GridSpec(2, 2)
-gs.update(hspace=0.1, wspace=0.2)
+gs = gridspec.GridSpec(2, 16)
+gs.update(hspace=0.05, wspace=0.1)
 alpha = 1
 
 clustering_sequence = initial_graph.transitivity_local_undirected()
@@ -127,26 +127,29 @@ colors = [cmap(i) for i in clustering_sequence]
 coloring_sequence = array(clustering_sequence)
 from matplotlib.collections import LineCollection
 from matplotlib.colors import NoNorm
-norm=None
+norm=None #NoNorm()
+linewidths=.15
 
 
-dynamical_degree_plot = f.add_subplot(gs[0])
+dynamical_degree_plot = f.add_subplot(gs[0,:7])
 dynamical_degree_plot.annotate("A", (0,0.95), xycoords=(dynamical_degree_plot.get_yaxis().get_label(), "axes fraction"), fontsize=14)
 
 segs = list(zip(x_vals, node_dynamical_degree[:,i]) for i in range(n_nodes))
-line_segments = LineCollection(segs), cmap=cmap, norm=norm)
+line_segments = LineCollection(segs, cmap=cmap, norm=norm, linewidths=linewidths)
 line_segments.set_array(coloring_sequence)
 dynamical_degree_plot.add_collection(line_segments)
 
 #for i in range(n_nodes):
 #    dynamical_degree_plot.plot(x_vals, node_dynamical_degree[:,i], alpha=alpha, color=cmap(clustering_sequence[i]))
+dynamical_degree_plot.plot(x_vals, system_dynamical_degree, color='k', linewidth=3)
+
 dynamical_degree_plot.set_ylabel('Dynamic Degree')
 for i in dynamical_degree_plot.get_xticklabels():
     i.set_visible(False)
     
-dynamical_degree_norm_plot = f.add_subplot(gs[1])
+dynamical_degree_norm_plot = f.add_subplot(gs[0,8:15])
 segs = list(zip(x_vals, node_dynamical_degree[:,i]/float(degree_sequence[i])) for i in range(n_nodes))
-line_segments = LineCollection(segs, cmap=cmap, norm=norm)
+line_segments = LineCollection(segs, cmap=cmap, norm=norm, linewidths=linewidths)
 line_segments.set_array(coloring_sequence)
 dynamical_degree_norm_plot.add_collection(line_segments)
 
@@ -160,9 +163,9 @@ for i in dynamical_degree_norm_plot.get_xticklabels():
     
     
 
-dynamical_strength_plot = f.add_subplot(gs[2], sharex=dynamical_degree_plot)
+dynamical_strength_plot = f.add_subplot(gs[1,:7], sharex=dynamical_degree_plot)
 segs = list(zip(x_vals, node_dynamical_out_strength[:,i]) for i in range(n_nodes))
-line_segments = LineCollection(segs, cmap=cmap, norm=norm)
+line_segments = LineCollection(segs, cmap=cmap, norm=norm, linewidths=linewidths)
 line_segments.set_array(coloring_sequence)
 dynamical_strength_plot.add_collection(line_segments)
 
@@ -171,12 +174,13 @@ dynamical_strength_plot.add_collection(line_segments)
 dynamical_strength_plot.plot(x_vals, system_dynamical_out_strength, color='k', linewidth=3)
 dynamical_strength_plot.set_ylabel('Dynamic Out Strength')
 dynamical_strength_plot.set_xlabel("Cascades (n x 10$^{6}$)")
+dynamical_strength_plot.set_xlim(x_vals[0], x_vals[-1])
 
 dynamical_strength_plot.annotate("B", (0,0.95), xycoords=(dynamical_strength_plot.get_yaxis().get_label(), "axes fraction"), fontsize=14)
 
-dynamical_strength_norm_plot = f.add_subplot(gs[3], sharex=dynamical_degree_norm_plot)
+dynamical_strength_norm_plot = f.add_subplot(gs[1,8:15], sharex=dynamical_degree_norm_plot)
 segs = list(zip(x_vals, node_dynamical_out_strength[:,i]/node_out_strength[:,i]) for i in range(n_nodes))
-line_segments = LineCollection(segs, cmap=cmap, norm=norm)
+line_segments = LineCollection(segs, cmap=cmap, norm=norm, linewidths=linewidths)
 line_segments.set_array(coloring_sequence)
 dynamical_strength_norm_plot.add_collection(line_segments)
 #for i in range(n_nodes):
@@ -184,10 +188,14 @@ dynamical_strength_norm_plot.add_collection(line_segments)
 dynamical_strength_norm_plot.plot(x_vals, system_dynamical_out_strength_norm, color='k', linewidth=3)
 dynamical_strength_norm_plot.set_ylabel('Dynamic Out Strength, Normalized')
 dynamical_strength_norm_plot.set_xlabel("Cascades (n x 10$^{6}$)")
+dynamical_strength_norm_plot.set_xlim(x_vals[0], x_vals[-1])
 
 
 
 #savefig(output_directory+'DynamicDegreeStrength'+".pdf", bbox_inches='tight')
+cax = f.add_subplot(gs[:,15])
+cb = f.colorbar(line_segments, cax=cax)
+cb.set_label('Clustering Coefficient')
 figures.append(f)
 
 # <codecell>
@@ -319,8 +327,8 @@ cc_d_corr_plot_sample.set_yticks([0, .5, 1.0])
 
 #####
 f.show()
-savefig(output_directory+'TerminationCorrelation'+".pdf", bbox_inches='tight')
 figures.append(f)
+savefig(output_directory+'TerminationCorrelation'+".pdf", bbox_inches='tight')
 
 # <codecell>
 
