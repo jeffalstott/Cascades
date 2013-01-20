@@ -15,7 +15,8 @@ from os import listdir
 
 # <codecell>
 
-data_directory = '/data/alstottjd/Sini/'
+data_directory = '/data/alstottjd/Cascade/Timelines/'
+output_directory = '/data/alstottjd/Cascade/Figures/'
 files = listdir(data_directory)
 
 # <codecell>
@@ -140,7 +141,7 @@ def plot_intrc(measure, normalized=True, offset=1):
     
     f.tight_layout()
     
-    savefig(data_directory+'RichClub'+measure+".pdf", bbox_inches='tight')
+    savefig(output_directory+'RichClub'+measure+".pdf", bbox_inches='tight')
     #title("Rich Club with Learning")
 
 # <codecell>
@@ -163,7 +164,7 @@ xlabel("Cascades (n x 10$^{6}$)")
 ylabel("Bits to Represent Network")
 
 f.tight_layout()
-savefig(data_directory+'Compression.pdf', bbox_inches='tight')
+savefig(output_directory+'Compression.pdf', bbox_inches='tight')
 #title("Network Compression with Learning")
 
 # <codecell>
@@ -201,12 +202,16 @@ ylabel("Number of Modules", fontsize=10)
 
 f.tight_layout()
 
-savefig(data_directory+'Modularity.pdf', bbox_inches='tight')
+savefig(output_directory+'Modularity.pdf', bbox_inches='tight')
 #title("Modularity with Learning")
 
 # <codecell>
 
-plot_intrc('itl')
+plot_intrc('iNl')
+
+# <codecell>
+
+plot_intrc('iNpwml')
 
 # <codecell>
 
@@ -255,7 +260,7 @@ leg.get_frame().set_alpha(0)
 
 f.tight_layout()
 
-savefig(data_directory+'PathLengthClustering.pdf', bbox_inches='tight')
+savefig(output_directory+'PathLengthClustering.pdf', bbox_inches='tight')
 
 # <codecell>
 
@@ -283,7 +288,7 @@ ax.set_ylabel("Correlation in Betweeness Centrality Rank Order")
 
 f.tight_layout()
 
-savefig(data_directory+'BetweenessDerivative.pdf', bbox_inches='tight')
+savefig(output_directory+'BetweenessDerivative.pdf', bbox_inches='tight')
 #title("Network Compression with Learning")
 
 # <codecell>
@@ -312,7 +317,7 @@ ax.set_ylabel("Correlation in Betweeness Centrality Rank Order\n From Original N
 
 f.tight_layout()
 
-savefig(data_directory+'BetweenessCorrtoFirst.pdf', bbox_inches='tight')
+savefig(output_directory+'BetweenessCorrtoFirst.pdf', bbox_inches='tight')
 #title("Network Compression with Learning")
 
 # <codecell>
@@ -340,7 +345,7 @@ ax.set_ylabel("Mincut Value")
 
 f.tight_layout()
 
-savefig(data_directory+'Mincut.pdf', bbox_inches='tight')
+savefig(output_directory+'Mincut.pdf', bbox_inches='tight')
 #title("Network Compression with Learning")
 
 # <codecell>
@@ -368,6 +373,122 @@ ax.set_ylabel("Diameter")
 
 f.tight_layout()
 
-savefig(data_directory+'Diameter.pdf', bbox_inches='tight')
+savefig(output_directory+'Diameter.pdf', bbox_inches='tight')
 #title("Network Compression with Learning")
+
+# <codecell>
+
+increment = 1.0/10.0
+x = arange(.1, 1, .1)
+w= 3.375
+h = w/1.6180
+#f = figure(figsize=(w,h))
+f = figure()
+
+n_cascades = 10.0
+cascades_per_run = n_cascades/n_runs
+step_size = 5
+n_samples = ceil(n_runs/step_size)
+
+c1 = 0
+c2 = 2
+c3 = 9.6
+
+r1 = round(c1/cascades_per_run)
+r2 = round(c2/cascades_per_run)
+r3 = round(c3/cascades_per_run)
+
+#c1 = r1*cascades_per_step/10**6
+#c2 = r2*cascades_per_step/10**6
+#c3 = r3*cascades_per_step/10**6
+
+s1 = floor((r1/n_runs)*n_samples)
+s2 = floor((r2/n_runs)*n_samples)
+s3 = floor((r3/n_runs)*n_samples)
+
+rc_in = data['mlast']['data']["T_in"].raw_normalized("rc_itl_in")
+rc_out = data['mlast']['data']["T_out"].raw_normalized("rc_itl_out")
+
+
+alpha = .1
+
+xlims = (.1,.9)
+
+
+
+ax1 = f.add_subplot(131)
+
+y_vals = mean(rc_in[:,s1,:], axis=0)
+error = std(rc_in[:,s1, :], axis=0)
+ax1.plot(x, y_vals, label='In Strength', color='b')
+ax1.fill_between(x, y_vals-error, y_vals+error, alpha=alpha, color='b')
+
+y_vals = mean(rc_out[:,s1,:], axis=0)
+error = std(rc_out[:,s1, :], axis=0)
+ax1.plot(x, y_vals, label='Out Strength', color='g')
+ax1.fill_between(x, y_vals-error, y_vals+error, alpha=alpha, color='g')
+
+ax1.set_xlim(xlims)
+
+ax1.plot(xlims, (1,1), 'k--')
+plt.setp(ax1.get_xticklabels(), visible=False)
+ylabel("Normalized Rich Club Coefficient")
+text(.5, .9, '0 Cascades', transform = ax1.transAxes, horizontalalignment='center', fontsize=10)
+#xlabel('Strength Decile')
+plt.xticks(x[::2], x[::2])
+#handles, labels = ax1.get_legend_handles_labels()
+#ax1.legend(handles, labels, loc=6)
+
+ax2 = f.add_subplot(132, sharey=ax1)
+y_vals = mean(rc_in[:,s2,:], axis=0)
+error = std(rc_in[:,s2, :], axis=0)
+ax2.plot(x, y_vals, label='In Strength', color='b')
+ax2.fill_between(x, y_vals-error, y_vals+error, alpha=alpha, color='b')
+
+y_vals = mean(rc_out[:,s2,:], axis=0)
+error = std(rc_out[:,s2, :], axis=0)
+ax2.plot(x, y_vals, label='Out Strength', color='g')
+ax2.fill_between(x, y_vals-error, y_vals+error, alpha=alpha, color='g')
+
+ax2.set_xlim(xlims)
+ax2.plot(xlims, (1,1), 'k--')
+plt.setp(ax2.get_yticklabels(), visible=False)
+xlabel('Strength Percentile')
+plt.xticks(x[::2], (x[::2]*100).astype(int))
+text(.5, .9, '$%.1f*10^{6}$ Cascades'%c2, transform = ax2.transAxes, horizontalalignment='center', fontsize=10)
+#handles, labels = ax.get_legend_handles_labels()
+#ax.legend(handles, labels, loc=1)
+
+ax3 = f.add_subplot(133, sharey=ax1)
+y_vals = mean(rc_in[:,s3,:], axis=0)
+error = std(rc_in[:,s3, :], axis=0)
+ax3.plot(x, y_vals, label='In Strength', color='b')
+ax3.fill_between(x, y_vals-error, y_vals+error, alpha=alpha, color='b')
+
+y_vals = mean(rc_out[:,s3,:], axis=0)
+error = std(rc_out[:,s3, :], axis=0)
+ax3.plot(x, y_vals, label='Out Strength', color='g')
+ax3.fill_between(x, y_vals-error, y_vals+error, alpha=alpha, color='g')
+
+ax3.set_xlim(xlims)
+ax3.plot(xlims, (1,1), 'k--')
+plt.setp(ax3.get_yticklabels(), visible=False)
+plt.setp(ax3.get_xticklabels(), visible=False)
+text(.5, .9, '$%.1f*10^{6}$ Cascades'%c3, transform = ax3.transAxes, horizontalalignment='center', fontsize=10)
+#xlabel('Strength Decile')
+plt.xticks(x[::2], x[::2])
+
+handles, labels = ax3.get_legend_handles_labels()
+ax3.legend(handles, labels, loc=5, fontsize=8)
+
+ax3.set_ylim(0,6)
+
+savefig(output_directory+'RichClubSamples.pdf', bbox_inches='tight')
+#suptitle('Rich Club Growth and Death')
+
+# <codecell>
+
+
+# <codecell>
+
 
