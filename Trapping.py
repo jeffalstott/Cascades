@@ -13,9 +13,14 @@ rc('font', family='serif')
 #data_directory = '/data/alstottjd/Cascade/Controlled_Data/'
 #data_file = '10,5_NL_mlast_nruns70_pinc0.001_addinc0_mnwt7_mxwt5_cf99_R1000000_netprms:_60_oho_-6_1_5_ncorr.mat'
 data_directory = '/data/alstottjd/Sini/Original/'
-nets_file = 'NL_mlast_nruns70_pinc0.001_addinc0_mnwt7_mxwt5_cf99_R1000000_netprms:_60_oho_-6_1_5_ncorr.mat'
-summary_file = 'NL_summary_mlast_nruns70_pinc0.001_addinc0_mnwt7_mxwt5_cf99_R1000000_netprms:_60_oho_-6_1_5_ncorr.mat'
-activity_file = 'NL_activity_mlast_nruns70_pinc0.001_addinc0_mnwt7_mxwt5_cf99_R1000000_netprms:_60_oho_-6_1_5_ncorr.mat'
+if network_type in ('OHO', 'oho'):
+    nets_file = 'NL_mlast_nruns70_pinc0.001_addinc0_mnwt7_mxwt5_cf99_R1000000_netprms:_60_oho_-6_1_5_ncorr.mat'
+    summary_file = 'NL_summary_mlast_nruns70_pinc0.001_addinc0_mnwt7_mxwt5_cf99_R1000000_netprms:_60_oho_-6_1_5_ncorr.mat'
+    activity_file = 'NL_activity_mlast_nruns70_pinc0.001_addinc0_mnwt7_mxwt5_cf99_R1000000_netprms:_60_oho_-6_1_5_ncorr.mat'
+elif network_type in ('WS', 'ws', 'wn', 'WN'):
+    nets_file = 'NL_mlast_nruns70_pinc0.001_addinc0_mnwt7_mxwt5_cf99_R1000000_netprms:_60_ws_-0.0333333-4_1_5_ncorr.mat'
+    summary_file = 'NL_summary_mlast_nruns70_pinc0.001_addinc0_mnwt7_mxwt5_cf99_R1000000_netprms:_60_ws_-0.0333333-4_1_5_ncorr.mat'
+    activity_file = 'NL_activity_mlast_nruns70_pinc0.001_addinc0_mnwt7_mxwt5_cf99_R1000000_netprms:_60_ws_-0.0333333-4_1_5_ncorr.mat'
 
 from scipy.io import loadmat
 nets = loadmat(data_directory+nets_file)
@@ -365,8 +370,8 @@ for i in range(500):
     Rs_cc = []
     for replicate in range(n_replicates):
         this_graph = Graph.Weighted_Adjacency(nets['pnets'][0,replicate][0,i].toarray().tolist())
-        Rs_d.append(pearsonr(this_graph.strength(fixed_cc_nodes[replicate], weights="weight", mode=1), d[replicate,fixed_cc_nodes[replicate]])[0])
-        Rs_cc.append(pearsonr(this_graph.strength(fixed_d_nodes[replicate], weights="weight", mode=1), cc[replicate, fixed_d_nodes[replicate]])[0])
+        Rs_d.append(pearsonr(this_graph.strength(weights="weight", mode=1), d[replicate])[0])
+        Rs_cc.append(pearsonr(this_graph.strength(weights="weight", mode=1), cc[replicate])[0])
     
     Rs_d_mean[i] = mean(Rs_d)
     Rs_cc_mean[i] = mean(Rs_cc)
@@ -375,9 +380,9 @@ for i in range(500):
     
 strength_correlation_plot = f.add_subplot(gs[3:5], sharex=termination_correlation_plot, sharey=termination_correlation_plot)
 
-strength_correlation_plot.plot(x_vals, Rs_d_mean, color='k', label=r'$R_{s-d}$ fixed $CC$')
+strength_correlation_plot.plot(x_vals, Rs_d_mean, color='k', label=r'$R_{s-d}$')
 strength_correlation_plot.fill_between(x_vals, Rs_d_mean-Rs_d_sd, Rs_d_mean+Rs_d_sd, alpha=alpha, color='k')
-strength_correlation_plot.plot(x_vals, Rs_cc_mean, color='r', label=r'$R_{s-CC}$ fixed $d$')
+strength_correlation_plot.plot(x_vals, Rs_cc_mean, color='r', label=r'$R_{s-CC}$')
 strength_correlation_plot.fill_between(x_vals, Rs_cc_mean-Rs_cc_sd, Rs_cc_mean+Rs_cc_sd, alpha=alpha, color='r')
 
 #Rtn_d = zeros(500)
@@ -402,6 +407,89 @@ strength_correlation_plot.annotate("B", (0,0.95), xycoords=(strength_correlation
 cc_d_corr_plot_sample = f.add_subplot(gs[5], sharex=cc_d_corr_plot, sharey=cc_d_corr_plot)
 
 for replicate in range(n_replicates):
+    cc_d_corr_plot_sample.scatter(d[replicate], cc[replicate], color='k', marker='.', s=2)
+
+cc_d_corr_plot_sample.set_ylim(0,1)
+cc_d_corr_plot_sample.set_ylabel('CC')
+cc_d_corr_plot_sample.set_xlabel('d')
+cc_d_corr_plot_sample.set_yticks([0, .5, 1.0])
+
+#####
+f.show()
+figures.append(f)
+#savefig(output_directory+'TerminationCorrelation'+".pdf", bbox_inches='tight')
+
+# <codecell>
+
+#####
+if network_type in ('OHO', 'oho'):
+    d_target = 8
+    cc_range = (.45, .55)
+elif network_type in ('WS', 'ws', 'wn', 'WN'):
+    d_target = 9
+    cc_range = (.30, .45)
+n_replicates = len(nets['pnets'][0,:])
+
+d = zeros([n_replicates, n_nodes])
+cc = zeros([n_replicates, n_nodes])
+fixed_d_nodes = []
+fixed_cc_nodes = []
+
+for replicate in range(n_replicates):
+    initial_graph = Graph.Weighted_Adjacency(nets['pnets'][0,replicate][0,0].toarray().tolist())
+    d[replicate,:] = asarray(initial_graph.degree(mode=1))
+    cc[replicate,:] = asarray(initial_graph.transitivity_local_undirected())
+    fixed_d_nodes.append(where(d[replicate,:]==d_target)[0])
+    fixed_cc_nodes.append(where((cc_range[0]<=cc[replicate,:])&(cc[replicate,:]<cc_range[1]))[0])
+
+#####
+from scipy.stats import pearsonr
+Rs_d_mean = zeros(500)
+Rs_cc_mean = zeros(500)
+Rs_d_sd = zeros(500)
+Rs_cc_sd = zeros(500)
+for i in range(500):
+    Rs_d = []
+    Rs_cc = []
+    for replicate in range(n_replicates):
+        this_graph = Graph.Weighted_Adjacency(nets['pnets'][0,replicate][0,i].toarray().tolist())
+        Rs_d.append(pearsonr(this_graph.strength(fixed_cc_nodes[replicate], weights="weight", mode=1), d[replicate,fixed_cc_nodes[replicate]])[0])
+        Rs_cc.append(pearsonr(this_graph.strength(fixed_d_nodes[replicate], weights="weight", mode=1), cc[replicate, fixed_d_nodes[replicate]])[0])
+    
+    Rs_d_mean[i] = mean(Rs_d)
+    Rs_cc_mean[i] = mean(Rs_cc)
+    Rs_d_sd[i] = std(Rs_d)
+    Rs_cc_sd[i] = std(Rs_cc)
+    
+strength_correlation_plot = f.add_subplot(gs[6:8], sharex=termination_correlation_plot, sharey=termination_correlation_plot)
+
+strength_correlation_plot.plot(x_vals, Rs_d_mean, color='k', label=r'$R_{s-d}$ fixed $CC$')
+strength_correlation_plot.fill_between(x_vals, Rs_d_mean-Rs_d_sd, Rs_d_mean+Rs_d_sd, alpha=alpha, color='k')
+strength_correlation_plot.plot(x_vals, Rs_cc_mean, color='r', label=r'$R_{s-CC}$ fixed $d$')
+strength_correlation_plot.fill_between(x_vals, Rs_cc_mean-Rs_cc_sd, Rs_cc_mean+Rs_cc_sd, alpha=alpha, color='r')
+
+#Rtn_d = zeros(500)
+#Rtn_cc = zeros(500)
+#for i in range(500):
+#    Rtn_d[i] = pearsonr(fTN[i][fixed_cc_nodes], d[fixed_cc_nodes])[0]
+#    Rtn_cc[i] = pearsonr(fTN[i][fixed_d_nodes], cc[fixed_d_nodes])[0]
+#strength_correlation_plot.plot(x_vals, Rtn_d, color='k')
+#strength_correlation_plot.plot(x_vals, Rtn_cc, color='r')
+
+handles, labels = strength_correlation_plot.get_legend_handles_labels()
+leg = strength_correlation_plot.legend(handles, labels, loc=1)
+
+strength_correlation_plot.set_ylim(-1,1)
+strength_correlation_plot.set_ylabel(r'$R_{s-d}$, $R_{s-CC}$')
+strength_correlation_plot.set_xlabel("Cascades (n x 10$^{6}$)")
+strength_correlation_plot.set_xticks(range(11))
+
+strength_correlation_plot.annotate("C", (0,0.95), xycoords=(strength_correlation_plot.get_yaxis().get_label(), "axes fraction"), fontsize=14)
+
+#####
+cc_d_corr_plot_sample = f.add_subplot(gs[8], sharex=cc_d_corr_plot, sharey=cc_d_corr_plot)
+
+for replicate in range(n_replicates):
     cc_d_corr_plot_sample.scatter(d[replicate, fixed_d_nodes[replicate]], cc[replicate, fixed_d_nodes[replicate]], color='r')
     cc_d_corr_plot_sample.scatter(d[replicate, fixed_cc_nodes[replicate]], cc[replicate, fixed_cc_nodes[replicate]], color='k')
 
@@ -418,7 +506,7 @@ figures.append(f)
 # <codecell>
 
 from matplotlib.backends.backend_pdf import PdfPages
-plots = PdfPages('/data/alstottjd/Cascade/Test_Figures.pdf')
+plots = PdfPages('/data/alstottjd/Cascade/%s_Figures.pdf'%network_type)
 for i in figures:
     plots.savefig(i)
 plots.close()
