@@ -46,6 +46,18 @@ activity = loadmat(data_directory+activity_file)
 
 # <codecell>
 
+summary['outstrend']
+
+# <codecell>
+
+node_out_strength
+
+# <codecell>
+
+node_os
+
+# <codecell>
+
 #####
 replicate = 4
 initial_graph = Graph.Weighted_Adjacency(nets['pnets'][0,replicate][0,0].toarray().tolist())
@@ -115,15 +127,20 @@ for sample in range(n_samples):
 
 output_directory = '/data/alstottjd/Cascade/'
 figures = []
+fn = 0
 
 # <codecell>
 
 #####
 close('all')
 f = figure(figsize=(11,8))
-gs = gridspec.GridSpec(2, 16)
-gs.update(hspace=0.05, wspace=0.1)
+gs = gridspec.GridSpec(4,16)
+gs.update(hspace=0.25, wspace=0.3)
 alpha = 1
+s = 20
+linewidths=.15
+
+TA = summary['totactivity'].astype('float')/(10**7/500.0)
 
 clustering_sequence = initial_graph.transitivity_local_undirected()
 from matplotlib.cm import get_cmap
@@ -133,74 +150,161 @@ coloring_sequence = array(clustering_sequence)
 from matplotlib.collections import LineCollection
 from matplotlib.colors import NoNorm
 norm=None #NoNorm()
-linewidths=.15
 
 
-dynamical_degree_plot = f.add_subplot(gs[0,:7])
-dynamical_degree_plot.annotate("A", (0,0.95), xycoords=(dynamical_degree_plot.get_yaxis().get_label(), "axes fraction"), fontsize=14)
+####
+termination_plot = f.add_subplot(gs[0,:7])
+termination_plot.annotate("A", (0,0.95), xycoords=(termination_plot.get_yaxis().get_label(), "axes fraction"), fontsize=14)
 
-segs = list(zip(x_vals, node_dynamical_degree[:,i]) for i in range(n_nodes))
+segs = list(zip(x_vals, TA[:,i]) for i in range(n_nodes))
 line_segments = LineCollection(segs, cmap=cmap, norm=norm, linewidths=linewidths)
 line_segments.set_array(coloring_sequence)
-dynamical_degree_plot.add_collection(line_segments)
+termination_plot.add_collection(line_segments)
 
-#for i in range(n_nodes):
-#    dynamical_degree_plot.plot(x_vals, node_dynamical_degree[:,i], alpha=alpha, color=cmap(clustering_sequence[i]))
-dynamical_degree_plot.plot(x_vals, system_dynamical_degree, color='k', linewidth=3)
+termination_plot.set_ylim(0, .1)
+#termination_plot.set_ylim(200, 400)
+termination_plot.set_ylabel(r'$AF$, Activation Freq.')
 
-dynamical_degree_plot.set_ylabel('Dynamic Degree')
-for i in dynamical_degree_plot.get_xticklabels():
+for i in termination_plot.get_xticklabels():
     i.set_visible(False)
-    
-dynamical_degree_norm_plot = f.add_subplot(gs[0,8:15])
-segs = list(zip(x_vals, node_dynamical_degree[:,i]/float(degree_sequence[i])) for i in range(n_nodes))
+
+####
+strength_plot = f.add_subplot(gs[1,:7], sharex=termination_plot)
+strength_plot.annotate("C", (0,0.95), xycoords=(strength_plot.get_yaxis().get_label(), "axes fraction"), fontsize=14)
+
+segs = list(zip(x_vals, summary['inpstrend'][:,i]) for i in range(n_nodes))
+
 line_segments = LineCollection(segs, cmap=cmap, norm=norm, linewidths=linewidths)
 line_segments.set_array(coloring_sequence)
-dynamical_degree_norm_plot.add_collection(line_segments)
+strength_plot.add_collection(line_segments)
 
-#for i in range(n_nodes):
-#    dynamical_degree_norm_plot.plot(x_vals, node_dynamical_degree[:,i]/float(degree_sequence[i]), alpha=alpha, color=cmap(clustering_sequence[i]))
-dynamical_degree_norm_plot.plot(x_vals, system_dynamical_degree_norm, color='k', linewidth=3)
-
-dynamical_degree_norm_plot.set_ylabel('Dynamic Degree, Normalized')
-for i in dynamical_degree_norm_plot.get_xticklabels():
+strength_plot.set_ylim(.4, 2)
+strength_plot.set_ylabel(r'$IS$, In Strength')
+for i in strength_plot.get_xticklabels():
     i.set_visible(False)
-    
-    
 
-dynamical_strength_plot = f.add_subplot(gs[1,:7], sharex=dynamical_degree_plot)
-segs = list(zip(x_vals, node_dynamical_out_strength[:,i]) for i in range(n_nodes))
+####
+termination_strength_corr_plot = f.add_subplot(gs[2,:7], sharex=termination_plot)
+termination_strength_corr_plot.annotate("E", (0,0.95), xycoords=(termination_strength_corr_plot.get_yaxis().get_label(), "axes fraction"), fontsize=14)
+
+
+termination_strength_corr_plot.plot(x_vals, [pearsonr(summary['inpstrend'][t,:], TA[t,:])[0] for t in range(len(x_vals))])
+
+termination_strength_corr_plot.set_ylim(-1, 1)
+termination_strength_corr_plot.set_ylabel(r'$R_{AF-IS}$')
+#for i in strength_plot.get_xticklabels():
+#    i.set_visible(False)
+termination_strength_corr_plot.set_xlabel("Cascades (n x 10$^{6}$)")
+termination_strength_corr_plot.set_xlim(x_vals[0], x_vals[-1])
+termination_strength_corr_plot.set_xticks(arange(x_vals[-1]+1))
+
+####
+from mpl_toolkits.axes_grid.inset_locator import inset_axes
+#termination_strength_corr_plot = inset_axes(termination_strength_corr_plot,
+#                        width="30%", # width = 30% of parent_bbox
+#                        height="50%",
+#                        loc=1)
+
+termination_strength_corr_plot = f.add_subplot(gs[3,:7])
+termination_strength_corr_plot.annotate("G", (0,0.95), xycoords=(termination_strength_corr_plot.get_yaxis().get_label(), "axes fraction"), fontsize=14)
+                                            
+from matplotlib import colors, cm
+norm = colors.normalize(coloring_sequence.min(), coloring_sequence.max())
+cmap = cm.spectral
+
+for i in range(n_nodes):
+    termination_strength_corr_plot.scatter(coloring_sequence[i], pearsonr(summary['inpstrend'][:,i], TA[:,i])[0], s=s, color=cmap(norm(coloring_sequence[i])))
+
+termination_strength_corr_plot.set_ylim(-1, 1)
+termination_strength_corr_plot.set_ylabel(r'$R_{AF-IS}$ by node')
+#for i in strength_plot.get_xticklabels():
+#    i.set_visible(False)
+termination_strength_corr_plot.set_xlabel("Clustering Coefficient")
+
+#####
+TF = summary['endactive'].astype('float')/summary['totactivity'].astype('float')
+norm=None #NoNorm()
+
+
+####
+termination_plot = f.add_subplot(gs[0,8:15])
+termination_plot.annotate("B", (0,0.95), xycoords=(termination_plot.get_yaxis().get_label(), "axes fraction"), fontsize=14)
+
+segs = list(zip(x_vals, TF[:,i]) for i in range(n_nodes))
 line_segments = LineCollection(segs, cmap=cmap, norm=norm, linewidths=linewidths)
 line_segments.set_array(coloring_sequence)
-dynamical_strength_plot.add_collection(line_segments)
+termination_plot.add_collection(line_segments)
 
-#for i in range(n_nodes):
-#    dynamical_strength_plot.plot(x_vals, node_dynamical_out_strength[:,i], alpha=alpha, color=cmap(clustering_sequence[i]))
-dynamical_strength_plot.plot(x_vals, system_dynamical_out_strength, color='k', linewidth=3)
-dynamical_strength_plot.set_ylabel('Dynamic Out Strength')
-dynamical_strength_plot.set_xlabel("Cascades (n x 10$^{6}$)")
-dynamical_strength_plot.set_xlim(x_vals[0], x_vals[-1])
-dynamical_strength_plot.set_xticks(arange(x_vals[-1]+1))
+termination_plot.set_ylim(.1, .4)
+termination_plot.set_xlim(x_vals[0], x_vals[-1])
+#termination_plot.set_ylim(200, 400)
+termination_plot.set_ylabel(r'$TF$, Termination Freq.')
 
-dynamical_strength_plot.annotate("B", (0,0.95), xycoords=(dynamical_strength_plot.get_yaxis().get_label(), "axes fraction"), fontsize=14)
+for i in termination_plot.get_xticklabels():
+    i.set_visible(False)
 
-dynamical_strength_norm_plot = f.add_subplot(gs[1,8:15], sharex=dynamical_degree_norm_plot)
-segs = list(zip(x_vals, node_dynamical_out_strength[:,i]/node_out_strength[:,i]) for i in range(n_nodes))
+####
+strength_plot = f.add_subplot(gs[1,8:15], sharex=termination_plot)
+strength_plot.annotate("D", (0,0.95), xycoords=(strength_plot.get_yaxis().get_label(), "axes fraction"), fontsize=14)
+
+segs = list(zip(x_vals, summary['outstrend'][:,i]) for i in range(n_nodes))
+
 line_segments = LineCollection(segs, cmap=cmap, norm=norm, linewidths=linewidths)
 line_segments.set_array(coloring_sequence)
-dynamical_strength_norm_plot.add_collection(line_segments)
-#for i in range(n_nodes):
-#    dynamical_strength_norm_plot.plot(x_vals, node_dynamical_out_strength[:,i]/node_out_strength[:,i], alpha=alpha, color=cmap(clustering_sequence[i]))
-dynamical_strength_norm_plot.plot(x_vals, system_dynamical_out_strength_norm, color='k', linewidth=3)
-dynamical_strength_norm_plot.set_ylabel('Dynamic Out Strength, Normalized')
-dynamical_strength_norm_plot.set_xlabel("Cascades (n x 10$^{6}$)")
-dynamical_strength_norm_plot.set_xlim(x_vals[0], x_vals[-1])
-dynamical_strength_norm_plot.set_xticks(arange(x_vals[-1]+1))
+strength_plot.add_collection(line_segments)
 
+strength_plot.set_ylim(.4, 2)
+strength_plot.set_xlim(x_vals[0], x_vals[-1])
+strength_plot.set_ylabel(r'$OS$, Out Strength')
+for i in strength_plot.get_xticklabels():
+    i.set_visible(False)
+
+####
+termination_strength_corr_plot = f.add_subplot(gs[2,8:15], sharex=termination_plot)
+termination_strength_corr_plot.annotate("F", (0,0.95), xycoords=(termination_strength_corr_plot.get_yaxis().get_label(), "axes fraction"), fontsize=14)
+
+
+termination_strength_corr_plot.plot(x_vals, [pearsonr(summary['outstrend'][t,:], TF[t,:])[0] for t in range(len(x_vals))])
+
+termination_strength_corr_plot.set_ylim(-1, 1)
+termination_strength_corr_plot.set_ylabel(r'$R_{TF-OS}$')
+#for i in strength_plot.get_xticklabels():
+#    i.set_visible(False)
+termination_strength_corr_plot.set_xlabel("Cascades (n x 10$^{6}$)")
+termination_strength_corr_plot.set_xlim(x_vals[0], x_vals[-1])
+termination_strength_corr_plot.set_xticks(arange(x_vals[-1]+1))
+
+####
+from mpl_toolkits.axes_grid.inset_locator import inset_axes
+#termination_strength_corr_plot = inset_axes(termination_strength_corr_plot,
+#                        width="30%", # width = 30% of parent_bbox
+#                        height="50%",
+#                        loc=1)
+
+termination_strength_corr_plot = f.add_subplot(gs[3,8:15])
+termination_strength_corr_plot.annotate("H", (0,0.95), xycoords=(termination_strength_corr_plot.get_yaxis().get_label(), "axes fraction"), fontsize=14)
+                                            
+from matplotlib import colors, cm
+norm = colors.normalize(coloring_sequence.min(), coloring_sequence.max())
+cmap = cm.spectral
+
+for i in range(n_nodes):
+    termination_strength_corr_plot.scatter(coloring_sequence[i], pearsonr(summary['outstrend'][:,i], fTN[:,i])[0], s=s, color=cmap(norm(coloring_sequence[i])))
+
+termination_strength_corr_plot.set_ylim(-1, 1)
+termination_strength_corr_plot.set_ylabel(r'$R_{TF-OS}$ by node')
+#for i in strength_plot.get_xticklabels():
+#    i.set_visible(False)
+termination_strength_corr_plot.set_xlabel("Clustering Coefficient")
+
+ 
 #savefig(output_directory+'DynamicDegreeStrength'+".pdf", bbox_inches='tight')
-cax = f.add_subplot(gs[:,15])
+cax = f.add_subplot(gs[:,-1])
 cb = f.colorbar(line_segments, cax=cax)
 cb.set_label('Clustering Coefficient')
+
+fn+=1
+f.suptitle("Figure %i"%fn)
 figures.append(f)
 
 # <codecell>
@@ -225,68 +329,6 @@ ax.scatter(degree_sequence, dynamical_degree_dip)
 print pearsonr(degree_sequence, dynamical_degree_dip)
 ax.scatter(degree_sequence, dynamical_out_strength_dip, color='r')
 print pearsonr(degree_sequence, dynamical_out_strength_dip)
-
-# <codecell>
-
-close('all')
-f = figure(figsize=(11,8))
-gs = gridspec.GridSpec(2, 16)
-gs.update(hspace=0.2, wspace=0.6)
-coloring_sequence = array(clustering_sequence)
-
-from matplotlib import colors, cm
-norm = colors.normalize(coloring_sequence.min(), coloring_sequence.max())
-cmap = cm.spectral
-
-
-####
-s=.05
-degree_strength_plot = f.add_subplot(gs[0,:7])
-for i in range(n_nodes):
-    degree_strength_plot.scatter(node_dynamical_degree[:,i], node_dynamical_out_strength[:,i], s=s, color=cmap(norm(coloring_sequence[i])))
-
-
-degree_strength_plot.set_ylabel('Dynamic Out Strength')
-degree_strength_plot.set_xlabel("Dynamic Degree")
-degree_strength_plot.annotate("A", (0,0.95), xycoords=(dynamical_strength_plot.get_yaxis().get_label(), "axes fraction"), fontsize=14)
-
-####
-degree_strength_norm_plot = f.add_subplot(gs[0,8:15])
-for i in range(n_nodes):
-    degree_strength_norm_plot.scatter(node_dynamical_degree[:,i]/float(degree_sequence[i]), node_dynamical_out_strength[:,i]/node_out_strength[:,i], s=s, color=cmap(norm(coloring_sequence[i])))
-
-    degree_strength_norm_plot.set_ylabel('Dynamic Out Strength, Normalized')
-degree_strength_norm_plot.set_xlabel("Dynamic Degree, Normalized")
-
-########
-####
-from scipy.stats import pearsonr
-s=10
-degree_strength_plot = f.add_subplot(gs[1,:7])
-for i in range(n_nodes):
-    degree_strength_plot.scatter(coloring_sequence[i], pearsonr(node_dynamical_degree[:,i], node_dynamical_out_strength[:,i])[0], s=s, color=cmap(norm(coloring_sequence[i])))
-
-degree_strength_plot.set_xlim(0,1)
-degree_strength_plot.set_ylabel('Dynamic Degree/Out Strength Correlation')
-degree_strength_plot.set_xlabel("Clustering Coefficient")
-degree_strength_plot.annotate("B", (0,0.95), xycoords=(dynamical_strength_plot.get_yaxis().get_label(), "axes fraction"), fontsize=14)
-
-####
-degree_strength_norm_plot = f.add_subplot(gs[1,8:15])
-for i in range(n_nodes):
-    degree_strength_norm_plot.scatter(coloring_sequence[i], pearsonr(node_dynamical_degree[:,i]/float(degree_sequence[i]), node_dynamical_out_strength[:,i]/node_out_strength[:,i])[0], s=s, color=cmap(norm(coloring_sequence[i])))
-
-degree_strength_norm_plot.set_xlim(0,1)
-degree_strength_norm_plot.set_ylabel('Dynamic Degree/Out Strength\nCorrelation, Normalized')
-degree_strength_norm_plot.set_xlabel("Clustering Coefficient")
-
-
-####
-from matplotlib import colorbar
-cax = f.add_subplot(gs[:,15])
-cb = colorbar.ColorbarBase(cax, cmap=cmap, norm=norm)
-cb.set_label('Clustering Coefficient')
-figures.append(f)
 
 # <codecell>
 
@@ -411,8 +453,11 @@ for replicate in range(n_replicates):
 
 cc_d_corr_plot_sample.set_ylim(0,1)
 cc_d_corr_plot_sample.set_ylabel('CC')
-cc_d_corr_plot_sample.set_xlabel('d')
 cc_d_corr_plot_sample.set_yticks([0, .5, 1.0])
+#cc_d_corr_plot_sample.set_xlabel('d')
+for i in cc_d_corr_plot_sample.get_xticklabels():
+    i.set_visible(False)
+
 
 #####
 f.show()
@@ -499,9 +544,175 @@ cc_d_corr_plot_sample.set_xlabel('d')
 cc_d_corr_plot_sample.set_yticks([0, .5, 1.0])
 
 #####
+fn+=1
+f.suptitle("Figure %i"%fn)
 f.show()
 figures.append(f)
 #savefig(output_directory+'TerminationCorrelation'+".pdf", bbox_inches='tight')
+
+# <codecell>
+
+#####
+close('all')
+f = figure(figsize=(11,8))
+gs = gridspec.GridSpec(2, 16)
+gs.update(hspace=0.05, wspace=0.25)
+alpha = 1
+
+clustering_sequence = initial_graph.transitivity_local_undirected()
+from matplotlib.cm import get_cmap
+cmap = get_cmap('spectral')
+colors = [cmap(i) for i in clustering_sequence]
+coloring_sequence = array(clustering_sequence)
+from matplotlib.collections import LineCollection
+from matplotlib.colors import NoNorm
+norm=None #NoNorm()
+linewidths=.15
+
+
+dynamical_degree_plot = f.add_subplot(gs[0,:7])
+dynamical_degree_plot.annotate("A", (0,0.95), xycoords=(dynamical_degree_plot.get_yaxis().get_label(), "axes fraction"), fontsize=14)
+
+segs = list(zip(x_vals, node_dynamical_degree[:,i]) for i in range(n_nodes))
+line_segments = LineCollection(segs, cmap=cmap, norm=norm, linewidths=linewidths)
+line_segments.set_array(coloring_sequence)
+dynamical_degree_plot.add_collection(line_segments)
+
+#for i in range(n_nodes):
+#    dynamical_degree_plot.plot(x_vals, node_dynamical_degree[:,i], alpha=alpha, color=cmap(clustering_sequence[i]))
+dynamical_degree_plot.plot(x_vals, system_dynamical_degree, color='k', linewidth=3)
+
+dynamical_degree_plot.set_ylabel('Dynamic Degree')
+for i in dynamical_degree_plot.get_xticklabels():
+    i.set_visible(False)
+    
+dynamical_degree_norm_plot = f.add_subplot(gs[0,8:15])
+dynamical_degree_norm_plot.annotate("B", (0,0.95), xycoords=(dynamical_degree_norm_plot.get_yaxis().get_label(), "axes fraction"), fontsize=14)
+segs = list(zip(x_vals, node_dynamical_degree[:,i]/float(degree_sequence[i])) for i in range(n_nodes))
+line_segments = LineCollection(segs, cmap=cmap, norm=norm, linewidths=linewidths)
+line_segments.set_array(coloring_sequence)
+dynamical_degree_norm_plot.add_collection(line_segments)
+
+#for i in range(n_nodes):
+#    dynamical_degree_norm_plot.plot(x_vals, node_dynamical_degree[:,i]/float(degree_sequence[i]), alpha=alpha, color=cmap(clustering_sequence[i]))
+dynamical_degree_norm_plot.plot(x_vals, system_dynamical_degree_norm, color='k', linewidth=3)
+
+dynamical_degree_norm_plot.set_ylabel('Dynamic Degree, Normalized')
+for i in dynamical_degree_norm_plot.get_xticklabels():
+    i.set_visible(False)
+    
+    
+
+dynamical_strength_plot = f.add_subplot(gs[1,:7], sharex=dynamical_degree_plot)
+dynamical_strength_plot.annotate("C", (0,0.95), xycoords=(dynamical_strength_plot.get_yaxis().get_label(), "axes fraction"), fontsize=14)
+segs = list(zip(x_vals, node_dynamical_out_strength[:,i]) for i in range(n_nodes))
+line_segments = LineCollection(segs, cmap=cmap, norm=norm, linewidths=linewidths)
+line_segments.set_array(coloring_sequence)
+dynamical_strength_plot.add_collection(line_segments)
+
+#for i in range(n_nodes):
+#    dynamical_strength_plot.plot(x_vals, node_dynamical_out_strength[:,i], alpha=alpha, color=cmap(clustering_sequence[i]))
+dynamical_strength_plot.plot(x_vals, system_dynamical_out_strength, color='k', linewidth=3)
+dynamical_strength_plot.set_ylabel('Dynamic Out Strength')
+dynamical_strength_plot.set_xlabel("Cascades (n x 10$^{6}$)")
+dynamical_strength_plot.set_xlim(x_vals[0], x_vals[-1])
+dynamical_strength_plot.set_xticks(arange(x_vals[-1]+1))
+
+
+dynamical_strength_norm_plot = f.add_subplot(gs[1,8:15], sharex=dynamical_degree_norm_plot)
+dynamical_strength_norm_plot.annotate("D", (0,0.95), xycoords=(dynamical_strength_norm_plot.get_yaxis().get_label(), "axes fraction"), fontsize=14)
+segs = list(zip(x_vals, node_dynamical_out_strength[:,i]/node_out_strength[:,i]) for i in range(n_nodes))
+line_segments = LineCollection(segs, cmap=cmap, norm=norm, linewidths=linewidths)
+line_segments.set_array(coloring_sequence)
+dynamical_strength_norm_plot.add_collection(line_segments)
+#for i in range(n_nodes):
+#    dynamical_strength_norm_plot.plot(x_vals, node_dynamical_out_strength[:,i]/node_out_strength[:,i], alpha=alpha, color=cmap(clustering_sequence[i]))
+dynamical_strength_norm_plot.plot(x_vals, system_dynamical_out_strength_norm, color='k', linewidth=3)
+dynamical_strength_norm_plot.set_ylabel('Dynamic Out Strength, Normalized')
+dynamical_strength_norm_plot.set_xlabel("Cascades (n x 10$^{6}$)")
+dynamical_strength_norm_plot.set_xlim(x_vals[0], x_vals[-1])
+dynamical_strength_norm_plot.set_xticks(arange(x_vals[-1]+1))
+
+#savefig(output_directory+'DynamicDegreeStrength'+".pdf", bbox_inches='tight')
+cax = f.add_subplot(gs[:,15])
+cb = f.colorbar(line_segments, cax=cax)
+cb.set_label('Clustering Coefficient')
+
+fn+=1
+f.suptitle("Figure %i"%fn)
+figures.append(f)
+
+# <codecell>
+
+close('all')
+f = figure(figsize=(11,8))
+gs = gridspec.GridSpec(2, 16)
+gs.update(hspace=0.2, wspace=0.6)
+coloring_sequence = array(clustering_sequence)
+
+from matplotlib import colors, cm
+norm = colors.normalize(coloring_sequence.min(), coloring_sequence.max())
+cmap = cm.spectral
+
+
+####
+s=.05
+degree_strength_plot = f.add_subplot(gs[0,:7])
+degree_strength_plot.annotate("A", (0,0.95), xycoords=(dynamical_strength_plot.get_yaxis().get_label(), "axes fraction"), fontsize=14)
+
+for i in range(n_nodes):
+    degree_strength_plot.scatter(node_dynamical_degree[:,i], node_dynamical_out_strength[:,i], s=s, color=cmap(norm(coloring_sequence[i])))
+
+
+degree_strength_plot.set_ylabel('Dynamic Out Strength')
+degree_strength_plot.set_xlabel("Dynamic Degree")
+degree_strength_plot.annotate("A", (0,0.95), xycoords=(dynamical_strength_plot.get_yaxis().get_label(), "axes fraction"), fontsize=14)
+
+####
+degree_strength_norm_plot = f.add_subplot(gs[0,8:15])
+degree_strength_norm_plot.annotate("B", (0,0.95), xycoords=(degree_strength_norm_plot.get_yaxis().get_label(), "axes fraction"), fontsize=14)
+for i in range(n_nodes):
+    degree_strength_norm_plot.scatter(node_dynamical_degree[:,i]/float(degree_sequence[i]), node_dynamical_out_strength[:,i]/node_out_strength[:,i], s=s, color=cmap(norm(coloring_sequence[i])))
+
+    degree_strength_norm_plot.set_ylabel('Dynamic Out Strength, Normalized')
+degree_strength_norm_plot.set_xlabel("Dynamic Degree, Normalized")
+
+########
+####
+from scipy.stats import pearsonr
+s=10
+degree_strength_plot = f.add_subplot(gs[1,:7])
+degree_strength_plot.annotate("C", (0,0.95), xycoords=(dynamical_strength_plot.get_yaxis().get_label(), "axes fraction"), fontsize=14)
+
+for i in range(n_nodes):
+    degree_strength_plot.scatter(coloring_sequence[i], pearsonr(node_dynamical_degree[:,i], node_dynamical_out_strength[:,i])[0], s=s, color=cmap(norm(coloring_sequence[i])))
+
+degree_strength_plot.set_xlim(0,1)
+degree_strength_plot.set_ylabel('Dynamic Degree/Out Strength Correlation')
+degree_strength_plot.set_xlabel("Clustering Coefficient")
+
+
+####
+degree_strength_norm_plot = f.add_subplot(gs[1,8:15])
+degree_strength_norm_plot.annotate("D", (0,0.95), xycoords=(degree_strength_norm_plot.get_yaxis().get_label(), "axes fraction"), fontsize=14)
+
+for i in range(n_nodes):
+    degree_strength_norm_plot.scatter(coloring_sequence[i], pearsonr(node_dynamical_degree[:,i]/float(degree_sequence[i]), node_dynamical_out_strength[:,i]/node_out_strength[:,i])[0], s=s, color=cmap(norm(coloring_sequence[i])))
+
+degree_strength_norm_plot.set_xlim(0,1)
+degree_strength_norm_plot.set_ylabel('Dynamic Degree/Out Strength\nCorrelation, Normalized')
+degree_strength_norm_plot.set_xlabel("Clustering Coefficient")
+
+
+####
+from matplotlib import colorbar
+cax = f.add_subplot(gs[:,15])
+cb = colorbar.ColorbarBase(cax, cmap=cmap, norm=norm)
+cb.set_label('Clustering Coefficient')
+
+fn+=1
+f.suptitle("Figure %i"%fn)
+figures.append(f)
 
 # <codecell>
 
