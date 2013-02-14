@@ -10,6 +10,10 @@ rc('font', family='serif')
 
 # <codecell>
 
+network_type = 'fixed_degree_undirected'
+
+# <codecell>
+
 #data_directory = '/data/alstottjd/Cascade/Controlled_Data/'
 #data_file = '10,5_NL_mlast_nruns70_pinc0.001_addinc0_mnwt7_mxwt5_cf99_R1000000_netprms:_60_oho_-6_1_5_ncorr.mat'
 data_directory = '/data/alstottjd/Sini/Original/'
@@ -21,6 +25,14 @@ elif network_type in ('WS', 'ws', 'wn', 'WN'):
     nets_file = 'NL_mlast_nruns70_pinc0.001_addinc0_mnwt7_mxwt5_cf99_R1000000_netprms:_60_ws_-0.0333333-4_1_5_ncorr.mat'
     summary_file = 'NL_summary_mlast_nruns70_pinc0.001_addinc0_mnwt7_mxwt5_cf99_R1000000_netprms:_60_ws_-0.0333333-4_1_5_ncorr.mat'
     activity_file = 'NL_activity_mlast_nruns70_pinc0.001_addinc0_mnwt7_mxwt5_cf99_R1000000_netprms:_60_ws_-0.0333333-4_1_5_ncorr.mat'
+elif network_type in ('fixed_degree_undirected'):
+    nets_file = 'NL_mlast_nruns70_pinc0.001_addinc0_mnwt7_mxwt5_cf99_R1000000_netprms:_60_fixd_-5_0_1_5_ncorr.mat'
+    summary_file = 'NL_summary_mlast_nruns70_pinc0.001_addinc0_mnwt7_mxwt5_cf99_R1000000_netprms:_60_fixd_-5_0_1_5_ncorr.mat'
+    activity_file = 'NL_activity_mlast_nruns70_pinc0.001_addinc0_mnwt7_mxwt5_cf99_R1000000_netprms:_60_fixd_-5_0_1_5_ncorr.mat'
+elif network_type in ('fixed_degree_directed'):
+    nets_file = 'NL_mlast_nruns70_pinc0.001_addinc0_mnwt7_mxwt5_cf99_R1000000_netprms:_60_fixd_-5_1_1_5_ncorr.mat'
+    summary_file = 'NL_summary_mlast_nruns70_pinc0.001_addinc0_mnwt7_mxwt5_cf99_R1000000_netprms:_60_fixd_-5_1_1_5_ncorr.mat'
+    activity_file = 'NL_activity_mlast_nruns70_pinc0.001_addinc0_mnwt7_mxwt5_cf99_R1000000_netprms:_60_fixd_-5_1_1_5_ncorr.mat'
 
 from scipy.io import loadmat
 nets = loadmat(data_directory+nets_file)
@@ -46,82 +58,88 @@ activity = loadmat(data_directory+activity_file)
 
 # <codecell>
 
-summary['outstrend']
+total = []
+figure()
+for sample in range(0,500, 10):
+    this_graph = Graph.Weighted_Adjacency(nets['pnets'][0,replicate][0,sample].toarray().tolist())
+    strength_sequence = this_graph.strength(mode=1, weights='weight')
+    plot(abs(strength_sequence-summary['outstrend'][sample])/summary['outstrend'][sample])
+    total.append(sum(abs(strength_sequence-summary['outstrend'][sample]))/sum(summary['outstrend'][sample]))
+figure()
+plot(total)
 
 # <codecell>
 
-node_out_strength
-
-# <codecell>
-
-node_os
-
-# <codecell>
-
+%%prun
 #####
 replicate = 4
 initial_graph = Graph.Weighted_Adjacency(nets['pnets'][0,replicate][0,0].toarray().tolist())
 n_nodes = len(initial_graph.vs)
 degree_sequence = initial_graph.degree(mode=1)
 
+node_degree = degree_sequence
+node_out_strength = zeros([n_samples, n_nodes])
 node_dynamical_degree = zeros([n_samples, n_nodes])
 node_dynamical_out_strength = zeros([n_samples, n_nodes])
-node_out_strength = zeros([n_samples, n_nodes])
+node_dynamical_degree_norm = zeros([n_samples, n_nodes])
+node_dynamical_out_strength_norm = zeros([n_samples, n_nodes])
 
-system_dynamical_degree = zeros([n_samples, n_nodes])
-system_dynamical_out_strength = zeros([n_samples, n_nodes])
-system_out_strength = zeros([n_samples, n_nodes])
-system_dynamical_degree_norm = zeros([n_samples, n_nodes])
-system_dynamical_out_strength_norm = zeros([n_samples, n_nodes])
+system_degree = zeros([n_samples])
+system_out_strength = zeros([n_samples])
+system_dynamical_degree = zeros([n_samples])
+system_dynamical_out_strength = zeros([n_samples])
+system_dynamical_degree_norm = zeros([n_samples])
+system_dynamical_out_strength_norm = zeros([n_samples])
 
 for sample in range(n_samples):
     if sample%100==0:
         print sample
-    deg = zeros(n_runs_per_sample)
-    os = zeros(n_runs_per_sample)
-    dyndeg = zeros(n_runs_per_sample)
-    dynos = zeros(n_runs_per_sample)
-    dyndeg_norm = zeros(n_runs_per_sample)
-    dynos_norm = zeros(n_runs_per_sample)
-
-    node_dyndeg = [[] for i in range(n_nodes)]
-    node_dyndeg_norm = [[] for i in range(n_nodes)]
-    node_dynos = [[] for i in range(n_nodes)]
-    node_dynos_norm = [[] for i in range(n_nodes)]
-    node_os = [[] for i in range(n_nodes)]
-    
+        
     this_graph = Graph.Weighted_Adjacency(nets['pnets'][0,replicate][0,sample].toarray().tolist())
     strength_sequence = this_graph.strength(mode=1, weights='weight')
+
+    node_deg = [[] for i in range(n_nodes)]
+    node_os = [[] for i in range(n_nodes)]
+    node_dyndeg = [[] for i in range(n_nodes)]
+    node_dynos = [[] for i in range(n_nodes)]
+    node_dyndeg_norm = [[] for i in range(n_nodes)]
+    node_dynos_norm = [[] for i in range(n_nodes)]  
+    
     for run in range(n_runs_per_sample):
         endnodes = atleast_1d(activity['endnodes'][sample*n_runs_per_sample+run][0].squeeze())-1
         activenodes = atleast_1d(activity['activenodes'][sample*n_runs_per_sample+run][0].squeeze())-1
+
         for endnode in endnodes:
-            deg[run] = degree_sequence[endnode]
-            dyndeg[run] = deg[run]
-            os[run] = strength_sequence[endnode]
-            dynos[run] = os[run]
+            d = float(degree_sequence[endnode])
+            os = strength_sequence[endnode]
+            dynd = d
+            dynos = os
+
             neighbors = this_graph.neighbors(endnode, mode=1)
-            
             for i in neighbors:
                 if i in activenodes:
-                    dyndeg[run] -= 1
-                    dynos[run] -= this_graph.es[this_graph.get_eid(endnode, i)]['weight']
-            node_dyndeg[endnode].append(dyndeg[run])
-            node_dynos[endnode].append(dynos[run])
-            node_os[endnode].append(os[run])
-
-            dyndeg_norm[run] = dyndeg[run]/deg[run]
-            dynos_norm[run] = dynos[run]/os[run]
+                    dynd -= 1
+                    dynos -= this_graph.es[this_graph.get_eid(endnode, i)]['weight']
+            
+            node_deg[endnode].append(d)
+            node_os[endnode].append(os)
+            node_dyndeg[endnode].append(dynd)
+            node_dynos[endnode].append(dynos)
+            node_dyndeg_norm[endnode].append(dynd/d)
+            node_dynos_norm[endnode].append(dynos/os)
   
     node_dynamical_degree[sample, :] = [mean(i) for i in node_dyndeg]
     node_dynamical_out_strength[sample, :] = [mean(i) for i in node_dynos]
-    node_out_strength[sample,:] = [mean(i) for i in node_os]
+    node_dynamical_degree_norm[sample, :] = [mean(i) for i in node_dyndeg_norm]
+    node_dynamical_out_strength_norm[sample, :] = [mean(i) for i in node_dynos_norm]
 
-    system_dynamical_degree[sample] = mean(dyndeg)
-    system_dynamical_out_strength[sample] = mean(dynos)
-
-    system_dynamical_degree_norm[sample] = mean(dyndeg_norm)
-    system_dynamical_out_strength_norm[sample] = mean(dynos_norm)
+    flat = lambda(l): [item for sublist in l for item in sublist]
+    system_degree[sample] = mean(flat(node_deg))
+    system_out_strength[sample] = mean(flat(node_os))
+    system_dynamical_degree[sample] = mean(flat(node_dyndeg))
+    system_dynamical_out_strength[sample] = mean(flat(node_dynos))
+    system_dynamical_degree_norm[sample] = mean(flat(node_dyndeg_norm))
+    system_dynamical_out_strength_norm[sample] = mean(flat(node_dynos_norm))
 
 # <codecell>
 
@@ -135,7 +153,7 @@ fn = 0
 close('all')
 f = figure(figsize=(11,8))
 gs = gridspec.GridSpec(4,16)
-gs.update(hspace=0.25, wspace=0.3)
+gs.update(hspace=0.3, wspace=0.3)
 alpha = 1
 s = 20
 linewidths=.15
@@ -187,7 +205,7 @@ for i in strength_plot.get_xticklabels():
 termination_strength_corr_plot = f.add_subplot(gs[2,:7], sharex=termination_plot)
 termination_strength_corr_plot.annotate("E", (0,0.95), xycoords=(termination_strength_corr_plot.get_yaxis().get_label(), "axes fraction"), fontsize=14)
 
-
+from scipy.stats import pearsonr
 termination_strength_corr_plot.plot(x_vals, [pearsonr(summary['inpstrend'][t,:], TA[t,:])[0] for t in range(len(x_vals))])
 
 termination_strength_corr_plot.set_ylim(-1, 1)
@@ -289,7 +307,7 @@ norm = colors.normalize(coloring_sequence.min(), coloring_sequence.max())
 cmap = cm.spectral
 
 for i in range(n_nodes):
-    termination_strength_corr_plot.scatter(coloring_sequence[i], pearsonr(summary['outstrend'][:,i], fTN[:,i])[0], s=s, color=cmap(norm(coloring_sequence[i])))
+    termination_strength_corr_plot.scatter(coloring_sequence[i], pearsonr(summary['outstrend'][:,i], TF[:,i])[0], s=s, color=cmap(norm(coloring_sequence[i])))
 
 termination_strength_corr_plot.set_ylim(-1, 1)
 termination_strength_corr_plot.set_ylabel(r'$R_{TF-OS}$ by node')
@@ -312,9 +330,9 @@ figures.append(f)
 dynamical_degree_dip = zeros(n_nodes)
 dynamical_out_strength_dip = zeros(n_nodes)
 for i in range(n_nodes):
-    normdd = node_dynamical_degree[:,i]/float(degree_sequence[i])
+    normdd = node_dynamical_degree_norm[:,i]
     dynamical_degree_dip[i]= sum(normdd-normdd[0])
-    normos = node_dynamical_out_strength[:,i]/node_out_strength[:,i]
+    normos = node_dynamical_out_strength_norm[:,i]
     dynamical_out_strength_dip[i] = sum(normos-normos[0])
     
 close('all')
@@ -344,26 +362,26 @@ initial_graph = Graph.Weighted_Adjacency(nets['pnets'][0,replicate][0,0].toarray
 n_nodes = len(initial_graph.vs)
 d = asarray(initial_graph.degree(mode=1))
 cc = asarray(initial_graph.transitivity_local_undirected())
-fTN = summary['endactive'].astype('float')/summary['totactivity'].astype('float')
+TF = summary['endactive'].astype('float')/summary['totactivity'].astype('float')
 
 #####
 from scipy.stats import pearsonr
-Rtn_d = zeros(500)
-Rtn_cc = zeros(500)
+Rtf_d = zeros(500)
+Rtf_cc = zeros(500)
 for i in range(500):
-    Rtn_d[i] = pearsonr(fTN[i], d)[0]
-    Rtn_cc[i] = pearsonr(fTN[i], cc)[0]
+    Rtf_d[i] = pearsonr(TF[i], d)[0]
+    Rtf_cc[i] = pearsonr(TF[i], cc)[0]
     
 termination_correlation_plot = f.add_subplot(gs[0:2])
 
-termination_correlation_plot.plot(x_vals, Rtn_d, color='k', label=r'$R_{TN-d}$')
-termination_correlation_plot.plot(x_vals, Rtn_cc, color='r', label=r'$R_{TN-CC}$')
+termination_correlation_plot.plot(x_vals, Rtf_d, color='k', label=r'$R_{TF-d}$')
+termination_correlation_plot.plot(x_vals, Rtf_cc, color='r', label=r'$R_{TF-CC}$')
 
 handles, labels = termination_correlation_plot.get_legend_handles_labels()
 leg = termination_correlation_plot.legend(handles, labels, loc=1)
     
 termination_correlation_plot.set_ylim(-1,1)
-termination_correlation_plot.set_ylabel(r'$R_{TN-d}$, $R_{TN-CC}$', color='k')
+termination_correlation_plot.set_ylabel(r'$R_{TF-d}$, $R_{TF-CC}$', color='k')
 #termination_correlation_plot.set_xlabel("Cascades (n x 10$^{6}$)")
 #plt.setp(termination_correlation_plot.get_xticklabels(), visible=False)
 for i in termination_correlation_plot.get_xticklabels():
@@ -461,94 +479,99 @@ for i in cc_d_corr_plot_sample.get_xticklabels():
 
 #####
 f.show()
-figures.append(f)
-#savefig(output_directory+'TerminationCorrelation'+".pdf", bbox_inches='tight')
 
-# <codecell>
+if "fixed_degree" in network_type:
+    fn+=1
+    f.suptitle("Figure %i"%fn)
+    figures.append(f)
 
-#####
-if network_type in ('OHO', 'oho'):
-    d_target = 8
-    cc_range = (.45, .55)
-elif network_type in ('WS', 'ws', 'wn', 'WN'):
-    d_target = 9
-    cc_range = (.30, .45)
-n_replicates = len(nets['pnets'][0,:])
 
-d = zeros([n_replicates, n_nodes])
-cc = zeros([n_replicates, n_nodes])
-fixed_d_nodes = []
-fixed_cc_nodes = []
+# <rawcell>
 
-for replicate in range(n_replicates):
-    initial_graph = Graph.Weighted_Adjacency(nets['pnets'][0,replicate][0,0].toarray().tolist())
-    d[replicate,:] = asarray(initial_graph.degree(mode=1))
-    cc[replicate,:] = asarray(initial_graph.transitivity_local_undirected())
-    fixed_d_nodes.append(where(d[replicate,:]==d_target)[0])
-    fixed_cc_nodes.append(where((cc_range[0]<=cc[replicate,:])&(cc[replicate,:]<cc_range[1]))[0])
-
-#####
-from scipy.stats import pearsonr
-Rs_d_mean = zeros(500)
-Rs_cc_mean = zeros(500)
-Rs_d_sd = zeros(500)
-Rs_cc_sd = zeros(500)
-for i in range(500):
-    Rs_d = []
-    Rs_cc = []
-    for replicate in range(n_replicates):
-        this_graph = Graph.Weighted_Adjacency(nets['pnets'][0,replicate][0,i].toarray().tolist())
-        Rs_d.append(pearsonr(this_graph.strength(fixed_cc_nodes[replicate], weights="weight", mode=1), d[replicate,fixed_cc_nodes[replicate]])[0])
-        Rs_cc.append(pearsonr(this_graph.strength(fixed_d_nodes[replicate], weights="weight", mode=1), cc[replicate, fixed_d_nodes[replicate]])[0])
-    
-    Rs_d_mean[i] = mean(Rs_d)
-    Rs_cc_mean[i] = mean(Rs_cc)
-    Rs_d_sd[i] = std(Rs_d)
-    Rs_cc_sd[i] = std(Rs_cc)
-    
-strength_correlation_plot = f.add_subplot(gs[6:8], sharex=termination_correlation_plot, sharey=termination_correlation_plot)
-
-strength_correlation_plot.plot(x_vals, Rs_d_mean, color='k', label=r'$R_{s-d}$ fixed $CC$')
-strength_correlation_plot.fill_between(x_vals, Rs_d_mean-Rs_d_sd, Rs_d_mean+Rs_d_sd, alpha=alpha, color='k')
-strength_correlation_plot.plot(x_vals, Rs_cc_mean, color='r', label=r'$R_{s-CC}$ fixed $d$')
-strength_correlation_plot.fill_between(x_vals, Rs_cc_mean-Rs_cc_sd, Rs_cc_mean+Rs_cc_sd, alpha=alpha, color='r')
-
-#Rtn_d = zeros(500)
-#Rtn_cc = zeros(500)
-#for i in range(500):
-#    Rtn_d[i] = pearsonr(fTN[i][fixed_cc_nodes], d[fixed_cc_nodes])[0]
-#    Rtn_cc[i] = pearsonr(fTN[i][fixed_d_nodes], cc[fixed_d_nodes])[0]
-#strength_correlation_plot.plot(x_vals, Rtn_d, color='k')
-#strength_correlation_plot.plot(x_vals, Rtn_cc, color='r')
-
-handles, labels = strength_correlation_plot.get_legend_handles_labels()
-leg = strength_correlation_plot.legend(handles, labels, loc=1)
-
-strength_correlation_plot.set_ylim(-1,1)
-strength_correlation_plot.set_ylabel(r'$R_{s-d}$, $R_{s-CC}$')
-strength_correlation_plot.set_xlabel("Cascades (n x 10$^{6}$)")
-strength_correlation_plot.set_xticks(range(11))
-
-strength_correlation_plot.annotate("C", (0,0.95), xycoords=(strength_correlation_plot.get_yaxis().get_label(), "axes fraction"), fontsize=14)
-
-#####
-cc_d_corr_plot_sample = f.add_subplot(gs[8], sharex=cc_d_corr_plot, sharey=cc_d_corr_plot)
-
-for replicate in range(n_replicates):
-    cc_d_corr_plot_sample.scatter(d[replicate, fixed_d_nodes[replicate]], cc[replicate, fixed_d_nodes[replicate]], color='r')
-    cc_d_corr_plot_sample.scatter(d[replicate, fixed_cc_nodes[replicate]], cc[replicate, fixed_cc_nodes[replicate]], color='k')
-
-cc_d_corr_plot_sample.set_ylim(0,1)
-cc_d_corr_plot_sample.set_ylabel('CC')
-cc_d_corr_plot_sample.set_xlabel('d')
-cc_d_corr_plot_sample.set_yticks([0, .5, 1.0])
-
-#####
-fn+=1
-f.suptitle("Figure %i"%fn)
-f.show()
-figures.append(f)
-#savefig(output_directory+'TerminationCorrelation'+".pdf", bbox_inches='tight')
+# #####
+# if network_type in ('OHO', 'oho'):
+#     d_target = 8
+#     cc_range = (.45, .55)
+# elif network_type in ('WS', 'ws', 'wn', 'WN'):
+#     d_target = 9
+#     cc_range = (.30, .45)
+# 
+# n_replicates = len(nets['pnets'][0,:])
+# 
+# d = zeros([n_replicates, n_nodes])
+# cc = zeros([n_replicates, n_nodes])
+# fixed_d_nodes = []
+# fixed_cc_nodes = []
+# 
+# for replicate in range(n_replicates):
+#     initial_graph = Graph.Weighted_Adjacency(nets['pnets'][0,replicate][0,0].toarray().tolist())
+#     d[replicate,:] = asarray(initial_graph.degree(mode=1))
+#     cc[replicate,:] = asarray(initial_graph.transitivity_local_undirected())
+#     fixed_d_nodes.append(where(d[replicate,:]==d_target)[0])
+#     fixed_cc_nodes.append(where((cc_range[0]<=cc[replicate,:])&(cc[replicate,:]<cc_range[1]))[0])
+# 
+# #####
+# from scipy.stats import pearsonr
+# Rs_d_mean = zeros(500)
+# Rs_cc_mean = zeros(500)
+# Rs_d_sd = zeros(500)
+# Rs_cc_sd = zeros(500)
+# for i in range(500):
+#     Rs_d = []
+#     Rs_cc = []
+#     for replicate in range(n_replicates):
+#         this_graph = Graph.Weighted_Adjacency(nets['pnets'][0,replicate][0,i].toarray().tolist())
+#         Rs_d.append(pearsonr(this_graph.strength(fixed_cc_nodes[replicate], weights="weight", mode=1), d[replicate,fixed_cc_nodes[replicate]])[0])
+#         Rs_cc.append(pearsonr(this_graph.strength(fixed_d_nodes[replicate], weights="weight", mode=1), cc[replicate, fixed_d_nodes[replicate]])[0])
+#     
+#     Rs_d_mean[i] = mean(Rs_d)
+#     Rs_cc_mean[i] = mean(Rs_cc)
+#     Rs_d_sd[i] = std(Rs_d)
+#     Rs_cc_sd[i] = std(Rs_cc)
+#     
+# strength_correlation_plot = f.add_subplot(gs[6:8], sharex=termination_correlation_plot, sharey=termination_correlation_plot)
+# 
+# strength_correlation_plot.plot(x_vals, Rs_d_mean, color='k', label=r'$R_{s-d}$ fixed $CC$')
+# strength_correlation_plot.fill_between(x_vals, Rs_d_mean-Rs_d_sd, Rs_d_mean+Rs_d_sd, alpha=alpha, color='k')
+# strength_correlation_plot.plot(x_vals, Rs_cc_mean, color='r', label=r'$R_{s-CC}$ fixed $d$')
+# strength_correlation_plot.fill_between(x_vals, Rs_cc_mean-Rs_cc_sd, Rs_cc_mean+Rs_cc_sd, alpha=alpha, color='r')
+# 
+# #Rtn_d = zeros(500)
+# #Rtn_cc = zeros(500)
+# #for i in range(500):
+# #    Rtn_d[i] = pearsonr(fTN[i][fixed_cc_nodes], d[fixed_cc_nodes])[0]
+# #    Rtn_cc[i] = pearsonr(fTN[i][fixed_d_nodes], cc[fixed_d_nodes])[0]
+# #strength_correlation_plot.plot(x_vals, Rtn_d, color='k')
+# #strength_correlation_plot.plot(x_vals, Rtn_cc, color='r')
+# 
+# handles, labels = strength_correlation_plot.get_legend_handles_labels()
+# leg = strength_correlation_plot.legend(handles, labels, loc=1)
+# 
+# strength_correlation_plot.set_ylim(-1,1)
+# strength_correlation_plot.set_ylabel(r'$R_{s-d}$, $R_{s-CC}$')
+# strength_correlation_plot.set_xlabel("Cascades (n x 10$^{6}$)")
+# strength_correlation_plot.set_xticks(range(11))
+# 
+# strength_correlation_plot.annotate("C", (0,0.95), xycoords=(strength_correlation_plot.get_yaxis().get_label(), "axes fraction"), fontsize=14)
+# 
+# #####
+# cc_d_corr_plot_sample = f.add_subplot(gs[8], sharex=cc_d_corr_plot, sharey=cc_d_corr_plot)
+# 
+# for replicate in range(n_replicates):
+#     cc_d_corr_plot_sample.scatter(d[replicate, fixed_d_nodes[replicate]], cc[replicate, fixed_d_nodes[replicate]], color='r')
+#     cc_d_corr_plot_sample.scatter(d[replicate, fixed_cc_nodes[replicate]], cc[replicate, fixed_cc_nodes[replicate]], color='k')
+# 
+# cc_d_corr_plot_sample.set_ylim(0,1)
+# cc_d_corr_plot_sample.set_ylabel('CC')
+# cc_d_corr_plot_sample.set_xlabel('d')
+# cc_d_corr_plot_sample.set_yticks([0, .5, 1.0])
+# 
+# #####
+# fn+=1
+# f.suptitle("Figure %i"%fn)
+# f.show()
+# figures.append(f)
+# #savefig(output_directory+'TerminationCorrelation'+".pdf", bbox_inches='tight')
 
 # <codecell>
 
@@ -588,7 +611,7 @@ for i in dynamical_degree_plot.get_xticklabels():
     
 dynamical_degree_norm_plot = f.add_subplot(gs[0,8:15])
 dynamical_degree_norm_plot.annotate("B", (0,0.95), xycoords=(dynamical_degree_norm_plot.get_yaxis().get_label(), "axes fraction"), fontsize=14)
-segs = list(zip(x_vals, node_dynamical_degree[:,i]/float(degree_sequence[i])) for i in range(n_nodes))
+segs = list(zip(x_vals, node_dynamical_degree_norm[:,i]) for i in range(n_nodes))
 line_segments = LineCollection(segs, cmap=cmap, norm=norm, linewidths=linewidths)
 line_segments.set_array(coloring_sequence)
 dynamical_degree_norm_plot.add_collection(line_segments)
@@ -621,7 +644,7 @@ dynamical_strength_plot.set_xticks(arange(x_vals[-1]+1))
 
 dynamical_strength_norm_plot = f.add_subplot(gs[1,8:15], sharex=dynamical_degree_norm_plot)
 dynamical_strength_norm_plot.annotate("D", (0,0.95), xycoords=(dynamical_strength_norm_plot.get_yaxis().get_label(), "axes fraction"), fontsize=14)
-segs = list(zip(x_vals, node_dynamical_out_strength[:,i]/node_out_strength[:,i]) for i in range(n_nodes))
+segs = list(zip(x_vals, node_dynamical_out_strength_norm[:,i]) for i in range(n_nodes))
 line_segments = LineCollection(segs, cmap=cmap, norm=norm, linewidths=linewidths)
 line_segments.set_array(coloring_sequence)
 dynamical_strength_norm_plot.add_collection(line_segments)
@@ -672,7 +695,7 @@ degree_strength_plot.annotate("A", (0,0.95), xycoords=(dynamical_strength_plot.g
 degree_strength_norm_plot = f.add_subplot(gs[0,8:15])
 degree_strength_norm_plot.annotate("B", (0,0.95), xycoords=(degree_strength_norm_plot.get_yaxis().get_label(), "axes fraction"), fontsize=14)
 for i in range(n_nodes):
-    degree_strength_norm_plot.scatter(node_dynamical_degree[:,i]/float(degree_sequence[i]), node_dynamical_out_strength[:,i]/node_out_strength[:,i], s=s, color=cmap(norm(coloring_sequence[i])))
+    degree_strength_norm_plot.scatter(node_dynamical_degree_norm[:,i], node_dynamical_out_strength_norm[:,i], s=s, color=cmap(norm(coloring_sequence[i])))
 
     degree_strength_norm_plot.set_ylabel('Dynamic Out Strength, Normalized')
 degree_strength_norm_plot.set_xlabel("Dynamic Degree, Normalized")
@@ -697,7 +720,7 @@ degree_strength_norm_plot = f.add_subplot(gs[1,8:15])
 degree_strength_norm_plot.annotate("D", (0,0.95), xycoords=(degree_strength_norm_plot.get_yaxis().get_label(), "axes fraction"), fontsize=14)
 
 for i in range(n_nodes):
-    degree_strength_norm_plot.scatter(coloring_sequence[i], pearsonr(node_dynamical_degree[:,i]/float(degree_sequence[i]), node_dynamical_out_strength[:,i]/node_out_strength[:,i])[0], s=s, color=cmap(norm(coloring_sequence[i])))
+    degree_strength_norm_plot.scatter(coloring_sequence[i], pearsonr(node_dynamical_degree_norm[:,i], node_dynamical_out_strength_norm[:,i])[0], s=s, color=cmap(norm(coloring_sequence[i])))
 
 degree_strength_norm_plot.set_xlim(0,1)
 degree_strength_norm_plot.set_ylabel('Dynamic Degree/Out Strength\nCorrelation, Normalized')
